@@ -1,9 +1,9 @@
+<p align="center">
+  <img src="icons/icon.png" width="100" style="border-radius:6px;" />
+</p>
 
-<div style="display: flex; align-items: center; gap: 16px;">
-  <img src="icons/icon.png" alt="Flux Logo" style="width: 80px; height: 80px;border-radius:6px">
-  <span style="font-size: 30px">Flux: Smart Habit Tracking</span>
-</div>
-<hr>
+<h2 align="center">Flux: Smart Habit Tracking</h2>
+
 Flux is a modern, intuitive habit tracking application designed to help you build and maintain positive routines. With a clean, material design interface and powerful tracking features, Flux makes it easy to develop good habits and break bad ones.
 
 ## ✨ Key Features
