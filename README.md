@@ -27,15 +27,15 @@ Flux is a modern, intuitive habit tracking application designed to help you buil
 
 - **Beautiful UI** - Enjoy a clean, modern interface with both light and dark themes
 
-<!-- 
-## 📱 Coming soon screenshots
+
+## 📱 Screenshots
 
 <div align="center">
-  <img src="screenshots/home.png" width="200" alt="Home Screen">
-  <img src="screenshots/details.png" width="200" alt="Habit Details">
-  <img src="screenshots/stats.png" width="200" alt="Statistics">
-  <img src="screenshots/add.png" width="200" alt="Add Habit">
-</div> -->
+  <img src="screenshots/screenshot (1).png" width="200" alt="Home Screen">
+  <img src="screenshots/screenshot (2).png" width="200" alt="Habit Details">
+  <img src="screenshots/screenshot (3).png" width="200" alt="Statistics">
+  <img src="screenshots/screenshot (4).png" width="200" alt="Add Habit">
+</div>
 
 ## 🚀 Installation
 
