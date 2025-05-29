@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flux/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flux/settings_service.dart';
+import 'package:flux/theme_selection_screen.dart';
+import 'package:flux/debug_test_page.dart';
+import 'package:flutter/foundation.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -51,6 +54,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (_) => widget.toggleTheme(),
                   secondary: Icon(widget.isDarkMode ? Icons.dark_mode : Icons.light_mode),
                 ),
+                ListTile(
+                  title: Text('Choose Theme'),
+                  subtitle: Text('Select from 40+ available themes'),
+                  leading: Icon(Icons.palette),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ThemeSelectionScreen(
+                        onThemeChanged: (theme) {
+                          // Theme change is handled in ThemeSelectionScreen
+                        },
+                      ),
+                    ),
+                  ),
+                ),
                 Divider(),
                 _buildSection('Default Settings'),
                 ListTile(
@@ -74,6 +93,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text('1.0.0'),
                   leading: Icon(Icons.info_outline),
                 ),
+                if (kDebugMode) ...[
+                  Divider(),
+                  _buildSection('🛠️ Debug'),
+                  ListTile(
+                    title: Text('Debug Test Page'),
+                    subtitle: Text('Testing tools (Debug mode only)'),
+                    leading: Icon(Icons.bug_report, color: Colors.red),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => DebugTestPage()),
+                    ),
+                  ),
+                ],
               ],
             ),
     );

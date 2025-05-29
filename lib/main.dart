@@ -3,9 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flux/habit.dart';
 import 'package:flux/home_screen.dart';
 import 'package:flux/settings_service.dart';
+import 'package:flux/notification_service.dart';
+import 'package:flux/widget_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize services
+  await NotificationService.initialize();
+  await WidgetService.initialize();
+  
   final isDarkMode = await SettingsService.isDarkMode();
   runApp(HabitTrackerApp(isDarkMode: isDarkMode));
 }

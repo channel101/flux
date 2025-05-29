@@ -20,6 +20,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:flux/quick_entry_widget.dart';
+import 'package:flux/bulk_edit_screen.dart';
+import 'package:flux/widget_service.dart';
+import 'package:flux/achievements_view.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -116,6 +120,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       _bestStreakHabit = bestStreakHabit;
       _isLoading = false;
     });
+    
+    // Update home widgets
+    await WidgetService.updateHomeWidgets();
   }
 
   void _showAddHabit() {
@@ -354,6 +361,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _openBulkEdit() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BulkEditScreen(habits: _habits),
+      ),
+    ).then((_) => _loadHabits());
+  }
+
+  void _openAchievements() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AchievementsView(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -388,6 +413,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               icon: Icon(Icons.more_vert),
               onSelected: (value) {
                 switch (value) {
+                  case 'bulk_edit':
+                    _openBulkEdit();
+                    break;
                   case 'export':
                     _showExportDialog();
                     break;
@@ -397,9 +425,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   case 'year_review':
                     _showYearInReview();
                     break;
+                  case 'achievements':
+                    _openAchievements();
+                    break;
                 }
               },
               itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'bulk_edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_note, size: 18),
+                      SizedBox(width: 8),
+                      Text('Bulk Edit'),
+                    ],
+                  ),
+                ),
+                PopupMenuDivider(),
                 PopupMenuItem(
                   value: 'export',
                   child: Row(
@@ -427,6 +469,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Icon(Icons.auto_awesome, size: 18),
                       SizedBox(width: 8),
                       Text('Year in Review'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'achievements',
+                  child: Row(
+                    children: [
+                      Icon(Icons.emoji_events, size: 18),
+                      SizedBox(width: 8),
+                      Text('Achievements'),
                     ],
                   ),
                 ),
@@ -549,10 +601,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildHabitsList(List<Habit> habits) {
     return ListView.separated(
       padding: EdgeInsets.all(16),
-      itemCount: habits.length,
-      separatorBuilder: (_, __) => SizedBox(height: 8),
-      itemBuilder: (_, i) {
-        final habit = habits[i];
+      itemCount: habits.length + 1, // Add 1 for QuickEntryWidget
+      separatorBuilder: (context, index) {
+        if (index == 0) return SizedBox(height: 16); // Space after quick entry
+        return SizedBox(height: 8);
+      },
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          // Quick entry widget at the top
+          return QuickEntryWidget(
+            habits: _habits,
+            onUpdate: _loadHabits,
+          );
+        }
+        
+        final habit = habits[index - 1];
         return HabitListItem(
           habit: habit,
           onTap: () async {

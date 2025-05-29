@@ -1,10 +1,15 @@
 // lib/main.dart
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flux/habit_entry.dart';
 import 'package:flux/main.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:math';
 
 class Habit {
+  String id; // Unique identifier
   String name;
   HabitType type;
   ReportDisplay displayMode;
@@ -13,8 +18,8 @@ class Habit {
   Color? color;
   bool isArchived;
   String? notes;
-  int reminderHour;
-  int reminderMinute;
+  int? reminderHour;
+  int? reminderMinute;
   bool hasReminder;
   
   // New fields for enhanced functionality
@@ -29,16 +34,39 @@ class Habit {
   DateTime? pauseEndDate; // When pause ends
   bool isPaused; // Whether habit is currently paused
   
+  // Gamification fields
+  int totalPoints;
+  int level;
+  double experiencePoints;
+  List<String> unlockedAchievements;
+  List<String> unlockedThemes;
+  List<IconData> unlockedIcons;
+  
+  // Location-based reminder
+  String? locationReminder;
+  double? reminderLatitude;
+  double? reminderLongitude;
+  double? reminderRadius;
+  
+  // Difficulty multiplier for points
+  double difficultyMultiplier;
+  
+  // Custom motivational messages
+  List<String> motivationalMessages;
+  String? customSuccessMessage;
+  String? customFailureMessage;
+  
   Habit({
+    String? id,
     required this.name, 
-    this.type = HabitType.SuccessBased,
+    this.type = HabitType.DoneBased,
     this.displayMode = ReportDisplay.Rate, 
     this.icon, 
     this.color,
     this.isArchived = false,
     this.notes,
-    this.reminderHour = 20,
-    this.reminderMinute = 0,
+    this.reminderHour,
+    this.reminderMinute,
     this.hasReminder = false,
     this.category,
     this.frequency = HabitFrequency.Daily,
@@ -50,10 +78,37 @@ class Habit {
     this.pauseStartDate,
     this.pauseEndDate,
     this.isPaused = false,
-    List<HabitEntry>? entries
-  }) : entries = entries ?? [];
+    List<HabitEntry>? entries,
+    this.totalPoints = 0,
+    this.level = 1,
+    this.experiencePoints = 0.0,
+    List<String>? unlockedAchievements,
+    List<String>? unlockedThemes,
+    List<IconData>? unlockedIcons,
+    this.locationReminder,
+    this.reminderLatitude,
+    this.reminderLongitude,
+    this.reminderRadius,
+    this.difficultyMultiplier = 1.0,
+    List<String>? motivationalMessages,
+    this.customSuccessMessage,
+    this.customFailureMessage,
+  }) : 
+    id = id ?? const Uuid().v4(),
+    entries = entries ?? [],
+    unlockedAchievements = unlockedAchievements ?? [],
+    unlockedThemes = unlockedThemes ?? ['default'],
+    unlockedIcons = unlockedIcons ?? [],
+    motivationalMessages = motivationalMessages ?? [
+      "You've got this! 💪",
+      "Every day is a new opportunity! ✨",
+      "Small steps lead to big changes! 🚀",
+      "Consistency is key! 🔑",
+      "Believe in yourself! 🌟"
+    ];
   
   Map<String, dynamic> toJson() => {
+        'id': id,
         'name': name,
         'type': type.index,
         'displayMode': displayMode.index,
@@ -75,9 +130,24 @@ class Habit {
         'pauseEndDate': pauseEndDate?.toIso8601String(),
         'isPaused': isPaused,
         'entries': entries.map((e) => e.toJson()).toList(),
+        'totalPoints': totalPoints,
+        'level': level,
+        'experiencePoints': experiencePoints,
+        'unlockedAchievements': unlockedAchievements,
+        'unlockedThemes': unlockedThemes,
+        'unlockedIcons': unlockedIcons.map((i) => i.codePoint).toList(),
+        'locationReminder': locationReminder,
+        'reminderLatitude': reminderLatitude,
+        'reminderLongitude': reminderLongitude,
+        'reminderRadius': reminderRadius,
+        'difficultyMultiplier': difficultyMultiplier,
+        'motivationalMessages': motivationalMessages,
+        'customSuccessMessage': customSuccessMessage,
+        'customFailureMessage': customFailureMessage,
       };
       
   static Habit fromJson(Map<String, dynamic> json) => Habit(
+        id: json['id'],
         name: json['name'],
         type: HabitType.values[json['type'] ?? 1],
         displayMode: ReportDisplay.values[json['displayMode'] ?? 0],
@@ -85,8 +155,8 @@ class Habit {
         color: json['color'] != null ? Color(json['color']) : null,
         isArchived: json['isArchived'] ?? false,
         notes: json['notes'],
-        reminderHour: json['reminderHour'] ?? 20,
-        reminderMinute: json['reminderMinute'] ?? 0,
+        reminderHour: json['reminderHour'],
+        reminderMinute: json['reminderMinute'],
         hasReminder: json['hasReminder'] ?? false,
         category: json['category'],
         frequency: HabitFrequency.values[json['frequency'] ?? 0],
@@ -101,6 +171,28 @@ class Habit {
         entries: (json['entries'] as List?)
             ?.map((e) => HabitEntry.fromJson(e))
             .toList() ?? [],
+        totalPoints: json['totalPoints'] ?? 0,
+        level: json['level'] ?? 1,
+        experiencePoints: json['experiencePoints']?.toDouble() ?? 0.0,
+        unlockedAchievements: List<String>.from(json['unlockedAchievements'] ?? []),
+        unlockedThemes: List<String>.from(json['unlockedThemes'] ?? ['default']),
+        unlockedIcons: (json['unlockedIcons'] as List?)
+            ?.map((i) => IconData(i, fontFamily: 'MaterialIcons'))
+            .toList() ?? [],
+        locationReminder: json['locationReminder'],
+        reminderLatitude: json['reminderLatitude']?.toDouble(),
+        reminderLongitude: json['reminderLongitude']?.toDouble(),
+        reminderRadius: json['reminderRadius']?.toDouble(),
+        difficultyMultiplier: json['difficultyMultiplier']?.toDouble() ?? 1.0,
+        motivationalMessages: List<String>.from(json['motivationalMessages'] ?? [
+          "You've got this! 💪",
+          "Every day is a new opportunity! ✨",
+          "Small steps lead to big changes! 🚀",
+          "Consistency is key! 🔑",
+          "Believe in yourself! 🌟"
+        ]),
+        customSuccessMessage: json['customSuccessMessage'],
+        customFailureMessage: json['customFailureMessage'],
       );
       
   int getNextDayNumber() {
@@ -335,5 +427,261 @@ class Habit {
     }
     
     return maxNegative;
+  }
+
+  // Gamification Methods
+  
+  // Calculate points for an entry
+  int calculatePoints(HabitEntry entry) {
+    if (entry.isSkipped) return 0;
+    
+    int basePoints = 10;
+    
+    // Bonus for positive days
+    if (isPositiveDay(entry)) {
+      basePoints += 20;
+    }
+    
+    // Streak bonus
+    final streakMultiplier = (currentStreak / 7).floor() + 1; // Bonus every 7 days
+    basePoints += streakMultiplier * 5;
+    
+    // Difficulty multiplier
+    basePoints = (basePoints * difficultyMultiplier).round();
+    
+    // Type-based bonus
+    switch (type) {
+      case HabitType.FailBased:
+        basePoints += 15; // Harder to avoid than to do
+        break;
+      case HabitType.SuccessBased:
+        basePoints += 10;
+        break;
+      case HabitType.DoneBased:
+        basePoints += 5;
+        break;
+    }
+    
+    return basePoints;
+  }
+  
+  // Add points and check for level up
+  List<String> addPoints(int points) {
+    totalPoints += points;
+    experiencePoints += points.toDouble();
+    
+    List<String> levelUpMessages = [];
+    int newLevel = calculateLevel();
+    
+    while (level < newLevel) {
+      level++;
+      levelUpMessages.add("🎉 Level $level reached!");
+      
+      // Unlock rewards based on level
+      final rewards = getLevelRewards(level);
+      for (var reward in rewards) {
+        levelUpMessages.add("🎁 Unlocked: $reward");
+      }
+    }
+    
+    return levelUpMessages;
+  }
+  
+  // Calculate current level based on experience points
+  int calculateLevel() {
+    // Level formula: level = sqrt(experiencePoints / 100) + 1
+    // This means: Level 2 = 100 XP, Level 3 = 400 XP, Level 4 = 900 XP, etc.
+    return sqrt(experiencePoints / 100).floor() + 1;
+  }
+  
+  // Get experience points needed for next level
+  int getXPForNextLevel() {
+    final nextLevel = level + 1;
+    return (nextLevel - 1) * (nextLevel - 1) * 100;
+  }
+  
+  // Get current level progress as percentage
+  double getLevelProgress() {
+    final currentLevelXP = (level - 1) * (level - 1) * 100;
+    final nextLevelXP = getXPForNextLevel();
+    final currentProgress = experiencePoints - currentLevelXP;
+    final totalNeeded = nextLevelXP - currentLevelXP;
+    
+    return totalNeeded > 0 ? (currentProgress / totalNeeded).clamp(0.0, 1.0) : 1.0;
+  }
+  
+  // Get rewards for reaching a level
+  List<String> getLevelRewards(int level) {
+    List<String> rewards = [];
+    
+    // Every 5 levels: new theme
+    if (level % 5 == 0) {
+      final newTheme = "theme_level_$level";
+      if (!unlockedThemes.contains(newTheme)) {
+        unlockedThemes.add(newTheme);
+        rewards.add("New Theme: Level $level");
+      }
+    }
+    
+    // Every 3 levels: new icon
+    if (level % 3 == 0) {
+      final iconOptions = [
+        Icons.star_border, Icons.favorite_border, Icons.diamond,
+        Icons.local_fire_department, Icons.emoji_events, Icons.military_tech,
+        Icons.workspace_premium, Icons.verified, Icons.trending_up,
+      ];
+      
+      final iconIndex = (level ~/ 3 - 1) % iconOptions.length;
+      final newIcon = iconOptions[iconIndex];
+      
+      if (!unlockedIcons.any((i) => i.codePoint == newIcon.codePoint)) {
+        unlockedIcons.add(newIcon);
+        rewards.add("New Icon unlocked");
+      }
+    }
+    
+    return rewards;
+  }
+  
+  // Check for new achievements
+  List<String> checkAchievements() {
+    List<String> newAchievements = [];
+    
+    // Streak achievements
+    final streakAchievements = {
+      7: "first_week",
+      30: "first_month", 
+      100: "centurion",
+      365: "year_warrior"
+    };
+    
+    for (var entry in streakAchievements.entries) {
+      final achievementId = entry.value;
+      if (currentStreak >= entry.key && !unlockedAchievements.contains(achievementId)) {
+        unlockedAchievements.add(achievementId);
+        newAchievements.add("🏆 ${_getAchievementName(achievementId)}");
+      }
+    }
+    
+    // Entry count achievements
+    final entryAchievements = {
+      10: "getting_started",
+      50: "half_century",
+      100: "century_club",
+      500: "dedication_master"
+    };
+    
+    for (var entry in entryAchievements.entries) {
+      final achievementId = entry.value;
+      if (entries.length >= entry.key && !unlockedAchievements.contains(achievementId)) {
+        unlockedAchievements.add(achievementId);
+        newAchievements.add("🏆 ${_getAchievementName(achievementId)}");
+      }
+    }
+    
+    // Success rate achievements
+    if (successRate >= 80 && entries.length >= 20 && !unlockedAchievements.contains("consistency_king")) {
+      unlockedAchievements.add("consistency_king");
+      newAchievements.add("🏆 ${_getAchievementName("consistency_king")}");
+    }
+    
+    if (successRate >= 95 && entries.length >= 50 && !unlockedAchievements.contains("perfectionist")) {
+      unlockedAchievements.add("perfectionist");
+      newAchievements.add("🏆 ${_getAchievementName("perfectionist")}");
+    }
+    
+    // Points achievements
+    final pointsAchievements = {
+      1000: "first_thousand",
+      5000: "point_collector", 
+      10000: "point_master",
+      25000: "legend"
+    };
+    
+    for (var entry in pointsAchievements.entries) {
+      final achievementId = entry.value;
+      if (totalPoints >= entry.key && !unlockedAchievements.contains(achievementId)) {
+        unlockedAchievements.add(achievementId);
+        newAchievements.add("🏆 ${_getAchievementName(achievementId)}");
+      }
+    }
+    
+    return newAchievements;
+  }
+  
+  String _getAchievementName(String achievementId) {
+    final names = {
+      "first_week": "First Week Warrior",
+      "first_month": "Month Master", 
+      "centurion": "100-Day Centurion",
+      "year_warrior": "Year Warrior",
+      "getting_started": "Getting Started",
+      "half_century": "Half Century",
+      "century_club": "Century Club",
+      "dedication_master": "Dedication Master",
+      "consistency_king": "Consistency King",
+      "perfectionist": "Perfectionist",
+      "first_thousand": "First Thousand",
+      "point_collector": "Point Collector",
+      "point_master": "Point Master",
+      "legend": "Legend"
+    };
+    
+    return names[achievementId] ?? achievementId;
+  }
+  
+  // Get a random motivational message
+  String getRandomMotivationalMessage() {
+    if (motivationalMessages.isEmpty) return "Keep going! 💪";
+    motivationalMessages.shuffle();
+    return motivationalMessages.first;
+  }
+  
+  // Check if this is a milestone streak
+  bool isStreakMilestone() {
+    final milestones = [7, 14, 21, 30, 50, 75, 100, 150, 200, 365];
+    return milestones.contains(currentStreak);
+  }
+  
+  // Get milestone message for current streak
+  String getMilestoneMessage() {
+    switch (currentStreak) {
+      case 7:
+        return "🔥 One week strong! You're building momentum!";
+      case 14:
+        return "⚡ Two weeks of excellence! You're unstoppable!";
+      case 21:
+        return "💎 Three weeks! This is becoming a real habit!";
+      case 30:
+        return "🏆 One month champion! You've proven your dedication!";
+      case 50:
+        return "🚀 Fifty days! You're in the elite zone now!";
+      case 75:
+        return "👑 Seventy-five days! You're absolutely crushing it!";
+      case 100:
+        return "🎖️ ONE HUNDRED DAYS! You're a true habit master!";
+      case 150:
+        return "🌟 150 days! Your consistency is inspirational!";
+      case 200:
+        return "🔥 200 days! You've transcended ordinary limits!";
+      case 365:
+        return "🏅 ONE FULL YEAR! You are a legend!";
+      default:
+        return "🎉 Amazing streak! Keep the momentum going!";
+    }
+  }
+  
+  // Update difficulty multiplier
+  void updateDifficulty(double newMultiplier) {
+    difficultyMultiplier = newMultiplier.clamp(0.5, 3.0);
+  }
+  
+  // Get difficulty level name
+  String getDifficultyName() {
+    if (difficultyMultiplier <= 0.7) return "Easy";
+    if (difficultyMultiplier <= 1.0) return "Normal";
+    if (difficultyMultiplier <= 1.5) return "Hard";
+    if (difficultyMultiplier <= 2.0) return "Expert";
+    return "Master";
   }
 }

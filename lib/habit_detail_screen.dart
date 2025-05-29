@@ -329,7 +329,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
   }
 
   Widget _buildAnalyticsTab() {
-    return AnalyticsDashboard(habits: [widget.habit]);
+    return AnalyticsDashboard(habits: [widget.habit], showBackButton: false,);
   }
 
   Widget _buildEntriesTab() {

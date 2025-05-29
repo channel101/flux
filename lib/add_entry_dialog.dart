@@ -322,63 +322,163 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
           if (widget.habit.unit == HabitUnit.Count) ...[
             Text('Enter Count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _countController,
-                    decoration: InputDecoration(
-                      labelText: 'Count',
-                      hintText: '0',
-                      suffixText: unitName,
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.5)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      setState(() {
-                        _sliderValue = int.tryParse(value) ?? 0;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Quick Select: $_sliderValue',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[600]),
-            ),
-            SizedBox(height: 8),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: Theme.of(context).colorScheme.primary,
-                inactiveTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                thumbColor: Theme.of(context).colorScheme.primary,
-                overlayColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                trackHeight: 6,
-                thumbShape: RoundSliderThumbShape(enabledThumbRadius: 12),
+            
+            // Enhanced count input with stepper buttons
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.withOpacity(0.2)),
               ),
-              child: Slider(
-                value: _sliderValue.toDouble(),
-                min: 0,
-                max: (hasTargetValue ? widget.habit.targetValue! * 2 : 20).toDouble(),
-                divisions: (hasTargetValue ? widget.habit.targetValue! * 2 : 20).toInt(),
-                onChanged: (value) {
-                  setState(() {
-                    _sliderValue = value.toInt();
-                    _countController.text = _sliderValue.toString();
-                  });
-                },
+              child: Column(
+                children: [
+                  // Stepper row with +/- buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Minus button
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            final currentValue = int.tryParse(_countController.text) ?? 0;
+                            if (currentValue > 0) {
+                              final newValue = currentValue - 1;
+                              _countController.text = newValue.toString();
+                              setState(() {
+                                _sliderValue = newValue;
+                              });
+                            }
+                          },
+                          icon: Icon(Icons.remove, color: Theme.of(context).colorScheme.primary),
+                          iconSize: 24,
+                        ),
+                      ),
+                      
+                      SizedBox(width: 20),
+                      
+                      // Count display and text field
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                          ),
+                          child: TextFormField(
+                            controller: _countController,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: '0',
+                              suffixText: unitName,
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                            ),
+                            keyboardType: TextInputType.number,
+                            onChanged: (value) {
+                              final intValue = int.tryParse(value) ?? 0;
+                              setState(() {
+                                _sliderValue = intValue.clamp(0, 50);
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      
+                      SizedBox(width: 20),
+                      
+                      // Plus button
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            final currentValue = int.tryParse(_countController.text) ?? 0;
+                            final newValue = currentValue + 1;
+                            _countController.text = newValue.toString();
+                            setState(() {
+                              _sliderValue = newValue;
+                            });
+                          },
+                          icon: Icon(Icons.add, color: Theme.of(context).colorScheme.primary),
+                          iconSize: 24,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  SizedBox(height: 16),
+                  
+                  // Quick increment buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildQuickButton('+1', 1),
+                      _buildQuickButton('+5', 5),
+                      _buildQuickButton('+10', 10),
+                      _buildQuickButton('Reset', -1), // Special case for reset
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            SizedBox(height: 16),
+            
+            // Enhanced slider
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Quick Slider', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                      Text('${_sliderValue.toString()} $unitName', 
+                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, 
+                                          color: Theme.of(context).colorScheme.primary)),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      thumbColor: Theme.of(context).colorScheme.primary,
+                      activeTrackColor: Theme.of(context).colorScheme.primary,
+                      inactiveTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      overlayColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 12),
+                      trackHeight: 6,
+                    ),
+                    child: Slider(
+                      value: _sliderValue.toDouble(),
+                      min: 0,
+                      max: 50,
+                      divisions: 50,
+                      onChanged: (value) {
+                        setState(() {
+                          _sliderValue = value.round();
+                          _countController.text = _sliderValue.toString();
+                        });
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ] else ...[
@@ -620,6 +720,43 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
           return 'Progress towards goal';
         }
     }
+  }
+
+  Widget _buildQuickButton(String label, int value) {
+    return Container(
+      constraints: BoxConstraints(minWidth: 60),
+      child: ElevatedButton(
+        onPressed: () {
+          if (value == -1) {
+            // Reset button
+            _countController.text = '0';
+            setState(() {
+              _sliderValue = 0;
+            });
+          } else {
+            // Add value button
+            final currentValue = int.tryParse(_countController.text) ?? 0;
+            final newValue = currentValue + value;
+            _countController.text = newValue.toString();
+            setState(() {
+              _sliderValue = newValue.clamp(0, 50);
+            });
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: value == -1 ? Colors.grey : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          foregroundColor: value == -1 ? Colors.white : Theme.of(context).colorScheme.primary,
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          minimumSize: Size(50, 32),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
   }
 
   void _saveEntry() {

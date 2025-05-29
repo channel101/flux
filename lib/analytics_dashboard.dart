@@ -9,8 +9,9 @@ import 'package:collection/collection.dart';
 
 class AnalyticsDashboard extends StatefulWidget {
   final List<Habit> habits;
+  final bool showBackButton;
   
-  const AnalyticsDashboard({required this.habits});
+  const AnalyticsDashboard({required this.habits, this.showBackButton = true});
   
   @override
   _AnalyticsDashboardState createState() => _AnalyticsDashboardState();
@@ -122,6 +123,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> with TickerProv
             Tab(icon: Icon(Icons.analytics), text: 'Insights'),
           ],
         ),
+        automaticallyImplyLeading: widget.showBackButton,
         actions: [
           PopupMenuButton<String>(
             icon: Icon(Icons.date_range),

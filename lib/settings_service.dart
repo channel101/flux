@@ -9,14 +9,25 @@ class SettingsService {
   static const String DEFAULT_DISPLAY_MODE_KEY = 'default_display_mode';
   
   // Theme settings
-  static Future<bool> setDarkMode(bool isDark) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.setBool(THEME_KEY, isDark);
+  static Future<bool> setDarkMode(bool isDarkMode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_mode', isDarkMode);
+    return prefs.setBool(THEME_KEY, isDarkMode);
   }
   
   static Future<bool> isDarkMode() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(THEME_KEY) ?? true; // Default to dark mode
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('dark_mode') ?? false;
+  }
+  
+  static Future<void> setSelectedTheme(String themeKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_theme', themeKey);
+  }
+  
+  static Future<String> getSelectedTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('selected_theme') ?? 'default';
   }
   
   // Default habit type
