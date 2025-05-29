@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flux/achievements_system.dart';
+import 'package:flux/achievements/achievement_base.dart';
 import 'package:flux/habit.dart';
 import 'package:flux/storage_service.dart';
 
@@ -70,7 +71,7 @@ class _AchievementsViewState extends State<AchievementsView> {
   }
   
   Widget _buildAchievementsGrid() {
-    final achievementCategories = _categorizeAchievements();
+    final achievementCategories = AchievementsSystem.getAchievementsByCategory();
     
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -564,53 +565,5 @@ class _AchievementsViewState extends State<AchievementsView> {
         ),
       ),
     );
-  }
-  
-  Map<String, List<AchievementDefinition>> _categorizeAchievements() {
-    final categories = <String, List<AchievementDefinition>>{};
-    final badAchievements = <AchievementDefinition>[];
-    
-    for (final achievement in AchievementsSystem.achievementDefinitions.values) {
-      // Separate bad achievements
-      if (achievement.points < 0) {
-        badAchievements.add(achievement);
-        continue;
-      }
-      
-      String category;
-      
-      // Categorize based on achievement ID patterns
-      if (achievement.id.contains('week') || achievement.id.contains('month') || 
-          achievement.id.contains('centurion') || achievement.id.contains('year')) {
-        category = 'Streak Masters';
-      } else if (achievement.id.contains('started') || achievement.id.contains('century') || 
-                 achievement.id.contains('dedication')) {
-        category = 'Entry Milestones';
-      } else if (achievement.id.contains('consistency') || achievement.id.contains('perfectionist')) {
-        category = 'Consistency Champions';
-      } else if (achievement.id.contains('point') || achievement.id.contains('thousand') || 
-                 achievement.id.contains('legend')) {
-        category = 'Point Collectors';
-      } else {
-        category = 'Special Achievements';
-      }
-      
-      if (!categories.containsKey(category)) {
-        categories[category] = [];
-      }
-      categories[category]!.add(achievement);
-    }
-    
-    // Add bad achievements as a separate category
-    if (badAchievements.isNotEmpty) {
-      categories['🚫 Bad Ones'] = badAchievements;
-    }
-    
-    // Sort achievements within each category by rarity
-    for (final categoryAchievements in categories.values) {
-      categoryAchievements.sort((a, b) => a.rarity.index.compareTo(b.rarity.index));
-    }
-    
-    return categories;
   }
 } 

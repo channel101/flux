@@ -3,316 +3,60 @@ import 'package:confetti/confetti.dart';
 import 'package:flux/habit.dart';
 import 'package:flux/notification_service.dart';
 import 'package:flux/storage_service.dart';
+import 'package:flux/achievements/achievement_base.dart';
+import 'package:flux/achievements/streak_achievements.dart';
+import 'package:flux/achievements/milestone_achievements.dart';
+import 'package:flux/achievements/consistency_achievements.dart';
+import 'package:flux/achievements/special_achievements.dart';
+import 'package:flux/achievements/legendary_achievements.dart';
+import 'package:flux/achievements/bad_achievements.dart';
 
 class AchievementsSystem {
-  // Easy-to-edit achievement definitions
-  static const Map<String, AchievementDefinition> achievementDefinitions = {
-    // Streak Achievements
-    'first_week': AchievementDefinition(
-      id: 'first_week',
-      name: 'First Week Warrior',
-      description: 'Complete a 7-day streak',
-      icon: Icons.local_fire_department,
-      color: Colors.orange,
-      points: 100,
-      rarity: AchievementRarity.common,
-    ),
-    'first_month': AchievementDefinition(
-      id: 'first_month',
-      name: 'Month Master',
-      description: 'Complete a 30-day streak',
-      icon: Icons.emoji_events,
-      color: Colors.amber,
-      points: 500,
-      rarity: AchievementRarity.rare,
-    ),
-    'centurion': AchievementDefinition(
-      id: 'centurion',
-      name: '100-Day Centurion',
-      description: 'Complete a legendary 100-day streak',
-      icon: Icons.military_tech,
-      color: Colors.deepPurple,
-      points: 2000,
-      rarity: AchievementRarity.legendary,
-    ),
-    'year_warrior': AchievementDefinition(
-      id: 'year_warrior',
-      name: 'Year Warrior',
-      description: 'Complete an epic 365-day streak',
-      icon: Icons.workspace_premium,
-      color: Colors.amber,
-      points: 10000,
-      rarity: AchievementRarity.mythic,
-    ),
-    
-    // Entry Count Achievements
-    'getting_started': AchievementDefinition(
-      id: 'getting_started',
-      name: 'Getting Started',
-      description: 'Complete 10 entries',
-      icon: Icons.play_arrow,
-      color: Colors.green,
-      points: 50,
-      rarity: AchievementRarity.common,
-    ),
-    'half_century': AchievementDefinition(
-      id: 'half_century',
-      name: 'Half Century',
-      description: 'Complete 50 entries',
-      icon: Icons.trending_up,
-      color: Colors.blue,
-      points: 250,
-      rarity: AchievementRarity.uncommon,
-    ),
-    'century_club': AchievementDefinition(
-      id: 'century_club',
-      name: 'Century Club',
-      description: 'Complete 100 entries',
-      icon: Icons.verified,
-      color: Colors.purple,
-      points: 1000,
-      rarity: AchievementRarity.rare,
-    ),
-    'dedication_master': AchievementDefinition(
-      id: 'dedication_master',
-      name: 'Dedication Master',
-      description: 'Complete 500 entries',
-      icon: Icons.diamond,
-      color: Colors.cyan,
-      points: 5000,
-      rarity: AchievementRarity.legendary,
-    ),
-    
-    // Consistency Achievements
-    'consistency_king': AchievementDefinition(
-      id: 'consistency_king',
-      name: 'Consistency King',
-      description: 'Achieve 80% success rate with 20+ entries',
-      icon: Icons.star,
-      color: Colors.yellow,
-      points: 750,
-      rarity: AchievementRarity.rare,
-    ),
-    'perfectionist': AchievementDefinition(
-      id: 'perfectionist',
-      name: 'Perfectionist',
-      description: 'Maintain 100% success rate for 30 days',
-      icon: Icons.auto_awesome,
-      color: Colors.purple,
-      rarity: AchievementRarity.Epic,
-      points: 500,
-      checkCondition: (habit) => 
-        habit.successRate >= 100 && habit.currentStreak >= 30,
-    ),
-    
-    // Points Achievements
-    'first_thousand': AchievementDefinition(
-      id: 'first_thousand',
-      name: 'First Thousand',
-      description: 'Earn 1,000 points',
-      icon: Icons.savings,
-      color: Colors.teal,
-      points: 100,
-      rarity: AchievementRarity.uncommon,
-    ),
-    'point_collector': AchievementDefinition(
-      id: 'point_collector',
-      name: 'Point Collector',
-      description: 'Earn 5,000 points',
-      icon: Icons.account_balance_wallet,
-      color: Colors.indigo,
-      points: 500,
-      rarity: AchievementRarity.rare,
-    ),
-    'point_master': AchievementDefinition(
-      id: 'point_master',
-      name: 'Point Master',
-      description: 'Earn 10,000 points',
-      icon: Icons.monetization_on,
-      color: Colors.amber,
-      points: 1000,
-      rarity: AchievementRarity.legendary,
-    ),
-    'legend': AchievementDefinition(
-      id: 'legend',
-      name: 'Legend',
-      description: 'Earn 25,000 points',
-      icon: Icons.auto_awesome,
-      color: Colors.deepOrange,
-      points: 2500,
-      rarity: AchievementRarity.mythic,
-    ),
-    
-    // Special Achievements
-    'early_bird': AchievementDefinition(
-      id: 'early_bird',
-      name: 'Early Bird',
-      description: 'Complete a habit before 7 AM',
-      icon: Icons.wb_sunny,
-      color: Colors.orange,
-      points: 200,
-      rarity: AchievementRarity.uncommon,
-    ),
-    'night_owl': AchievementDefinition(
-      id: 'night_owl',
-      name: 'Night Owl',
-      description: 'Complete a habit after 10 PM',
-      icon: Icons.nights_stay,
-      color: Colors.indigo,
-      points: 200,
-      rarity: AchievementRarity.uncommon,
-    ),
-    'comeback_kid': AchievementDefinition(
-      id: 'comeback_kid',
-      name: 'Comeback Kid',
-      description: 'Start a new streak after a 7+ day break',
-      icon: Icons.refresh,
-      color: Colors.green,
-      points: 300,
-      rarity: AchievementRarity.rare,
-    ),
-    
-    // Bad/Joke Achievements (Red colored)
-    'procrastinator': AchievementDefinition(
-      id: 'procrastinator',
-      name: 'Master Procrastinator',
-      description: 'Skipped a habit 10 times in a row',
-      icon: Icons.snooze,
-      color: Colors.red,
-      rarity: AchievementRarity.Common,
-      points: -50,
-      isBadAchievement: true,
-      checkCondition: (habit) => _getConsecutiveSkips(habit) >= 10,
-    ),
-    'couch_potato': AchievementDefinition(
-      id: 'couch_potato',
-      name: 'Couch Potato Champion',
-      description: 'Ignored all habits for a week straight',
-      icon: Icons.weekend,
-      color: Colors.red,
-      rarity: AchievementRarity.Uncommon,
-      points: -100,
-      isBadAchievement: true,
-      checkCondition: (habit) => _getDaysWithoutActivity(habit) >= 7,
-    ),
-    'excuse_master': AchievementDefinition(
-      id: 'excuse_master',
-      name: 'Excuse Master',
-      description: 'Created 50 habits but completed none',
-      icon: Icons.emoji_people,
-      color: Colors.red,
-      rarity: AchievementRarity.Rare,
-      points: -200,
-      isBadAchievement: true,
-      checkCondition: (habit) => false, // This will be checked globally
-    ),
-    'digital_hermit': AchievementDefinition(
-      id: 'digital_hermit',
-      name: 'Digital Hermit',
-      description: "Haven't opened the app in 30 days",
-      icon: Icons.phone_disabled,
-      color: Colors.red,
-      rarity: AchievementRarity.Epic,
-      points: -300,
-      isBadAchievement: true,
-      checkCondition: (habit) => false, // This will be checked globally
-    ),
-    'broken_promises': AchievementDefinition(
-      id: 'broken_promises',
-      name: 'Broken Promises',
-      description: 'Reset your streak 20 times',
-      icon: Icons.heart_broken,
-      color: Colors.red,
-      rarity: AchievementRarity.Uncommon,
-      points: -150,
-      isBadAchievement: true,
-      checkCondition: (habit) => _getStreakResets(habit) >= 20,
-    ),
-    'habit_hoarder': AchievementDefinition(
-      id: 'habit_hoarder',
-      name: 'Habit Hoarder',
-      description: 'Created 100 habits but only use 5',
-      icon: Icons.inventory_2,
-      color: Colors.red,
-      rarity: AchievementRarity.Rare,
-      points: -250,
-      isBadAchievement: true,
-      checkCondition: (habit) => false, // This will be checked globally
-    ),
-    'midnight_snacker': AchievementDefinition(
-      id: 'midnight_snacker',
-      name: 'Midnight Snacker',
-      description: 'Failed your diet habit 30 times',
-      icon: Icons.nightlight,
-      color: Colors.red,
-      rarity: AchievementRarity.Common,
-      points: -75,
-      isBadAchievement: true,
-      checkCondition: (habit) => 
-        habit.name.toLowerCase().contains('diet') && habit.negativeCount >= 30,
-    ),
-    'wishful_thinker': AchievementDefinition(
-      id: 'wishful_thinker',
-      name: 'Wishful Thinker',
-      description: 'Set unrealistic targets and failed them all',
-      icon: Icons.cloud,
-      color: Colors.red,
-      rarity: AchievementRarity.Uncommon,
-      points: -125,
-      isBadAchievement: true,
-      checkCondition: (habit) => 
-        habit.targetValue != null && habit.targetValue! > 10 && habit.successRate < 20,
-    ),
-    'notification_ignore': AchievementDefinition(
-      id: 'notification_ignore',
-      name: 'Notification Ninja',
-      description: 'Ignored 100 habit reminders',
-      icon: Icons.notifications_off,
-      color: Colors.red,
-      rarity: AchievementRarity.Rare,
-      points: -200,
-      isBadAchievement: true,
-      checkCondition: (habit) => false, // This will be tracked separately
-    ),
-    'serial_quitter': AchievementDefinition(
-      id: 'serial_quitter',
-      name: 'Serial Quitter',
-      description: 'Archived 25 habits without completing them',
-      icon: Icons.exit_to_app,
-      color: Colors.red,
-      rarity: AchievementRarity.Epic,
-      points: -400,
-      isBadAchievement: true,
-      checkCondition: (habit) => false, // This will be checked globally
-    ),
+  // Combined achievement definitions from all categories
+  static final Map<String, AchievementDefinition> achievementDefinitions = {
+    ...streakAchievements,           // 15 achievements
+    ...milestoneAchievements,        // 16 achievements  
+    ...consistencyAchievements,      // 18 achievements
+    ...specialAchievements,          // 24 achievements
+    ...legendaryAchievements,        // 20 achievements
+    ...badAchievements,              // 23 achievements
   };
+  
+  // Total: 116 achievements!
   
   // Check and award achievements for a habit
   static Future<List<AchievementEarned>> checkAndAwardAchievements(Habit habit) async {
     final newAchievements = <AchievementEarned>[];
-    final achievementIds = habit.checkAchievements();
     
-    for (final achievementText in achievementIds) {
-      // Extract achievement ID from the text (remove emoji and "trophy" prefix)
-      final achievementId = _extractAchievementId(achievementText);
+    // Check each achievement definition
+    for (final achievement in achievementDefinitions.values) {
+      // Skip if already unlocked
+      if (habit.unlockedAchievements.contains(achievement.id)) {
+        continue;
+      }
       
-      if (achievementDefinitions.containsKey(achievementId)) {
-        final definition = achievementDefinitions[achievementId]!;
+      // Check if condition is met
+      if (achievement.checkCondition(habit)) {
         final earned = AchievementEarned(
-          definition: definition,
+          definition: achievement,
           earnedAt: DateTime.now(),
           habitName: habit.name,
         );
         
         newAchievements.add(earned);
         
+        // Add to habit's unlocked achievements
+        habit.unlockedAchievements.add(achievement.id);
+        
         // Award points to habit
-        final levelUpMessages = habit.addPoints(definition.points);
+        final levelUpMessages = habit.addPoints(achievement.points);
         
         // Show notification
         await NotificationService.showAchievementNotification(
-          title: 'Achievement Unlocked! 🏆',
-          body: '${definition.name}: ${definition.description}',
+          title: achievement.isBadAchievement 
+              ? 'Oops! Achievement Unlocked 😅'
+              : 'Achievement Unlocked! 🏆',
+          body: '${achievement.name}: ${achievement.description}',
         );
         
         // Handle level ups
@@ -328,34 +72,11 @@ class AchievementsSystem {
     }
     
     // Save updated habit
-    await StorageService.save(habit);
+    if (newAchievements.isNotEmpty) {
+      await StorageService.save(habit);
+    }
     
     return newAchievements;
-  }
-  
-  static String _extractAchievementId(String achievementText) {
-    // Remove emoji and extract the key part
-    final cleaned = achievementText.replaceAll('🏆 ', '');
-    
-    // Map display names back to IDs
-    final nameToId = {
-      'First Week Warrior': 'first_week',
-      'Month Master': 'first_month',
-      '100-Day Centurion': 'centurion',
-      'Year Warrior': 'year_warrior',
-      'Getting Started': 'getting_started',
-      'Half Century': 'half_century',
-      'Century Club': 'century_club',
-      'Dedication Master': 'dedication_master',
-      'Consistency King': 'consistency_king',
-      'Perfectionist': 'perfectionist',
-      'First Thousand': 'first_thousand',
-      'Point Collector': 'point_collector',
-      'Point Master': 'point_master',
-      'Legend': 'legend',
-    };
-    
-    return nameToId[cleaned] ?? 'unknown';
   }
   
   // Show celebration effect
@@ -394,186 +115,140 @@ class AchievementsSystem {
   static Map<String, double> getAchievementProgress(Habit habit) {
     final progress = <String, double>{};
     
-    // Streak achievements
-    progress['first_week'] = (habit.currentStreak / 7).clamp(0.0, 1.0);
-    progress['first_month'] = (habit.currentStreak / 30).clamp(0.0, 1.0);
-    progress['centurion'] = (habit.currentStreak / 100).clamp(0.0, 1.0);
-    progress['year_warrior'] = (habit.currentStreak / 365).clamp(0.0, 1.0);
-    
-    // Entry count achievements
-    progress['getting_started'] = (habit.entries.length / 10).clamp(0.0, 1.0);
-    progress['half_century'] = (habit.entries.length / 50).clamp(0.0, 1.0);
-    progress['century_club'] = (habit.entries.length / 100).clamp(0.0, 1.0);
-    progress['dedication_master'] = (habit.entries.length / 500).clamp(0.0, 1.0);
-    
-    // Consistency achievements
-    if (habit.entries.length >= 20) {
-      progress['consistency_king'] = habit.successRate >= 80 ? 1.0 : (habit.successRate / 80);
-    } else {
-      progress['consistency_king'] = habit.entries.length / 20;
+    for (final achievement in achievementDefinitions.values) {
+      // Simple progress calculation based on achievement type
+      if (achievement.id.contains('streak')) {
+        final target = _extractNumberFromId(achievement.id, 'streak');
+        progress[achievement.id] = (habit.currentStreak / target).clamp(0.0, 1.0);
+      } else if (achievement.id.contains('entries') || achievement.id.contains('century')) {
+        final target = _extractNumberFromId(achievement.id, 'entries');
+        progress[achievement.id] = (habit.entries.length / target).clamp(0.0, 1.0);
+      } else if (achievement.id.contains('points')) {
+        final target = _extractNumberFromId(achievement.id, 'points');
+        progress[achievement.id] = (habit.totalPoints / target).clamp(0.0, 1.0);
+      } else {
+        // For complex achievements, just check if condition is met
+        progress[achievement.id] = achievement.checkCondition(habit) ? 1.0 : 0.0;
+      }
     }
-    
-    if (habit.entries.length >= 50) {
-      progress['perfectionist'] = habit.successRate >= 95 ? 1.0 : (habit.successRate / 95);
-    } else {
-      progress['perfectionist'] = habit.entries.length / 50;
-    }
-    
-    // Points achievements
-    progress['first_thousand'] = (habit.totalPoints / 1000).clamp(0.0, 1.0);
-    progress['point_collector'] = (habit.totalPoints / 5000).clamp(0.0, 1.0);
-    progress['point_master'] = (habit.totalPoints / 10000).clamp(0.0, 1.0);
-    progress['legend'] = (habit.totalPoints / 25000).clamp(0.0, 1.0);
     
     return progress;
   }
   
-  // Helper methods for bad achievements
-  static int _getConsecutiveSkips(Habit habit) {
-    int consecutiveSkips = 0;
-    final sortedEntries = habit.entries.toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
-    
-    for (final entry in sortedEntries) {
-      if (entry.isSkipped == true || (!habit.isPositiveDay(entry))) {
-        consecutiveSkips++;
-      } else {
-        break;
-      }
+  // Helper to extract numbers from achievement IDs for progress calculation
+  static double _extractNumberFromId(String id, String type) {
+    switch (id) {
+      // Streak achievements
+      case 'first_3_days': return 3;
+      case 'first_week': return 7;
+      case 'two_weeks': return 14;
+      case 'three_weeks': return 21;
+      case 'first_month': return 30;
+      case 'six_weeks': return 42;
+      case 'two_months': return 60;
+      case 'three_months': return 90;
+      case 'centurion': return 100;
+      case 'half_year': return 180;
+      case 'year_warrior': return 365;
+      case 'immortal_streak': return 500;
+      case 'eternal_dedication': return 1000;
+      case 'transcendent': return 1500;
+      
+      // Entry achievements
+      case 'first_entry': return 1;
+      case 'getting_started': return 10;
+      case 'quarter_century': return 25;
+      case 'half_century': return 50;
+      case 'century_club': return 100;
+      case 'double_century': return 200;
+      case 'triple_century': return 300;
+      case 'half_millennium': return 500;
+      case 'millennium': return 1000;
+      case 'dedication_master': return 2000;
+      case 'habit_overlord': return 5000;
+      case 'habit_emperor': return 10000;
+      
+      // Point achievements
+      case 'first_thousand_points': return 1000;
+      case 'point_collector': return 5000;
+      case 'point_master': return 10000;
+      case 'legend': return 25000;
+      case 'point_deity': return 50000;
+      case 'point_legend': return 100000;
+      case 'point_omnipotent': return 1000000;
+      
+      default: return 100; // Default target
     }
-    return consecutiveSkips;
   }
-
-  static int _getDaysWithoutActivity(Habit habit) {
-    if (habit.entries.isEmpty) return 0;
+  
+  // Get achievements by category
+  static Map<String, List<AchievementDefinition>> getAchievementsByCategory() {
+    final categories = <String, List<AchievementDefinition>>{};
     
-    final lastEntry = habit.entries.reduce((a, b) => 
-      a.date.isAfter(b.date) ? a : b);
-    
-    return DateTime.now().difference(lastEntry.date).inDays;
-  }
-
-  static int _getStreakResets(Habit habit) {
-    // This would need to be tracked in the habit model
-    // For now, we'll estimate based on entry patterns
-    int resets = 0;
-    int currentStreak = 0;
-    final sortedEntries = habit.entries.toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
-    
-    for (final entry in sortedEntries) {
-      if (habit.isPositiveDay(entry)) {
-        currentStreak++;
+    // Categorize achievements
+    for (final achievement in achievementDefinitions.values) {
+      String category;
+      
+      if (achievement.isBadAchievement) {
+        category = '🚫 Hall of Shame';
+      } else if (achievement.rarity == AchievementRarity.mythic) {
+        category = '🌟 Mythic Legends';
+      } else if (achievement.rarity == AchievementRarity.legendary) {
+        category = '👑 Legendary Heroes';
+      } else if (achievement.id.contains('streak') || achievement.id.contains('week') || achievement.id.contains('month')) {
+        category = '🔥 Streak Masters';
+      } else if (achievement.id.contains('entry') || achievement.id.contains('century') || achievement.id.contains('millennium')) {
+        category = '📊 Entry Milestones';
+      } else if (achievement.id.contains('consistency') || achievement.id.contains('perfect') || achievement.id.contains('success')) {
+        category = '⭐ Consistency Champions';
+      } else if (achievement.id.contains('point') || achievement.id.contains('thousand')) {
+        category = '💎 Point Collectors';
       } else {
-        if (currentStreak > 0) {
-          resets++;
+        category = '🎯 Special Achievements';
+      }
+      
+      if (!categories.containsKey(category)) {
+        categories[category] = [];
+      }
+      categories[category]!.add(achievement);
+    }
+    
+    // Sort achievements within each category by rarity and points
+    for (final categoryAchievements in categories.values) {
+      categoryAchievements.sort((a, b) {
+        if (a.rarity.index != b.rarity.index) {
+          return a.rarity.index.compareTo(b.rarity.index);
         }
-        currentStreak = 0;
+        return a.points.compareTo(b.points);
+      });
+    }
+    
+    return categories;
+  }
+  
+  // Get total achievement stats
+  static Map<String, int> getAchievementStats() {
+    final stats = <String, int>{
+      'total': achievementDefinitions.length,
+      'common': 0,
+      'uncommon': 0,
+      'rare': 0,
+      'epic': 0,
+      'legendary': 0,
+      'mythic': 0,
+      'bad': 0,
+    };
+    
+    for (final achievement in achievementDefinitions.values) {
+      if (achievement.isBadAchievement) {
+        stats['bad'] = stats['bad']! + 1;
+      } else {
+        final rarity = achievement.rarity.name.toLowerCase();
+        stats[rarity] = stats[rarity]! + 1;
       }
     }
-    return resets;
-  }
-}
-
-// Data classes
-class AchievementDefinition {
-  final String id;
-  final String name;
-  final String description;
-  final IconData icon;
-  final Color color;
-  final int points;
-  final AchievementRarity rarity;
-  final Function(Habit) checkCondition;
-  final bool isBadAchievement;
-  
-  const AchievementDefinition({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.icon,
-    required this.color,
-    required this.points,
-    required this.rarity,
-    required this.checkCondition,
-    this.isBadAchievement = false,
-  });
-}
-
-class AchievementEarned {
-  final AchievementDefinition definition;
-  final DateTime earnedAt;
-  final String habitName;
-  
-  AchievementEarned({
-    required this.definition,
-    required this.earnedAt,
-    required this.habitName,
-  });
-}
-
-enum AchievementRarity {
-  common,
-  uncommon,
-  rare,
-  legendary,
-  mythic,
-  Epic,
-  Common,
-  Uncommon,
-  Rare,
-  Epic,
-}
-
-extension AchievementRarityExtension on AchievementRarity {
-  Color get color {
-    switch (this) {
-      case AchievementRarity.common:
-        return Colors.grey;
-      case AchievementRarity.uncommon:
-        return Colors.green;
-      case AchievementRarity.rare:
-        return Colors.blue;
-      case AchievementRarity.legendary:
-        return Colors.purple;
-      case AchievementRarity.mythic:
-        return Colors.orange;
-      case AchievementRarity.Epic:
-        return Colors.purple;
-      case AchievementRarity.Common:
-        return Colors.red;
-      case AchievementRarity.Uncommon:
-        return Colors.red;
-      case AchievementRarity.Rare:
-        return Colors.red;
-      case AchievementRarity.Epic:
-        return Colors.red;
-    }
-  }
-  
-  String get name {
-    switch (this) {
-      case AchievementRarity.common:
-        return 'Common';
-      case AchievementRarity.uncommon:
-        return 'Uncommon';
-      case AchievementRarity.rare:
-        return 'Rare';
-      case AchievementRarity.legendary:
-        return 'Legendary';
-      case AchievementRarity.mythic:
-        return 'Mythic';
-      case AchievementRarity.Epic:
-        return 'Epic';
-      case AchievementRarity.Common:
-        return 'Common';
-      case AchievementRarity.Uncommon:
-        return 'Uncommon';
-      case AchievementRarity.Rare:
-        return 'Rare';
-      case AchievementRarity.Epic:
-        return 'Epic';
-    }
+    
+    return stats;
   }
 }
 
@@ -624,7 +299,11 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
     _slideController.forward();
     await Future.delayed(Duration(milliseconds: 200));
     _scaleController.forward();
-    _confettiController.play();
+    
+    // Only show confetti for positive achievements
+    if (!widget.achievement.definition.isBadAchievement) {
+      _confettiController.play();
+    }
     
     // Auto-dismiss after 3 seconds
     await Future.delayed(Duration(seconds: 3));
@@ -647,6 +326,8 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
   
   @override
   Widget build(BuildContext context) {
+    final isbad = widget.achievement.definition.isBadAchievement;
+    
     return Material(
       color: Colors.transparent,
       child: Stack(
@@ -661,27 +342,28 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
             ),
           ),
           
-          // Confetti
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirection: 1.5708, // Down
-              particleDrag: 0.05,
-              emissionFrequency: 0.3,
-              numberOfParticles: 30,
-              gravity: 0.3,
-              shouldLoop: false,
-              colors: [
-                widget.achievement.definition.color,
-                widget.achievement.definition.rarity.color,
-                Colors.yellow,
-                Colors.red,
-                Colors.blue,
-                Colors.green,
-              ],
+          // Confetti (only for good achievements)
+          if (!isbad)
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirection: 1.5708, // Down
+                particleDrag: 0.05,
+                emissionFrequency: 0.3,
+                numberOfParticles: 30,
+                gravity: 0.3,
+                shouldLoop: false,
+                colors: [
+                  widget.achievement.definition.color,
+                  widget.achievement.definition.rarity.color,
+                  Colors.yellow,
+                  Colors.red,
+                  Colors.blue,
+                  Colors.green,
+                ],
+              ),
             ),
-          ),
           
           // Achievement card
           Center(
@@ -709,6 +391,12 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                   child: Container(
                     width: 300,
                     padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: isbad 
+                          ? Border.all(color: Colors.red, width: 2)
+                          : null,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -731,11 +419,11 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'Achievement Unlocked!',
+                          isbad ? 'Oops! Achievement Unlocked!' : 'Achievement Unlocked!',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.amber,
+                            color: isbad ? Colors.red : Colors.amber,
                           ),
                         ),
                         SizedBox(height: 8),
@@ -777,11 +465,11 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                         ),
                         SizedBox(height: 12),
                         Text(
-                          '+${widget.achievement.definition.points} Points',
+                          '${widget.achievement.definition.points > 0 ? '+' : ''}${widget.achievement.definition.points} Points',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                            color: widget.achievement.definition.points > 0 ? Colors.green : Colors.red,
                           ),
                         ),
                       ],
