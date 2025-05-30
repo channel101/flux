@@ -4,6 +4,7 @@ import 'package:flux/achievements_system.dart';
 import 'package:flux/achievements/achievement_base.dart';
 import 'package:flux/habit.dart';
 import 'package:flux/storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AchievementsView extends StatefulWidget {
   const AchievementsView({Key? key}) : super(key: key);
@@ -16,6 +17,7 @@ class _AchievementsViewState extends State<AchievementsView> {
   List<Habit> _habits = [];
   Set<String> _globalUnlockedAchievements = {};
   bool _isLoading = true;
+  String _filter = 'All'; // 'All', 'Unlocked', 'Locked'
   
   @override
   void initState() {
@@ -27,16 +29,12 @@ class _AchievementsViewState extends State<AchievementsView> {
     setState(() => _isLoading = true);
     
     final habits = await StorageService.loadAll();
-    final globalUnlocked = <String>{};
-    
-    // Collect all unlocked achievements across all habits
-    for (final habit in habits) {
-      globalUnlocked.addAll(habit.unlockedAchievements);
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final globalUnlocked = prefs.getStringList('global_achievements') ?? [];
     
     setState(() {
       _habits = habits;
-      _globalUnlockedAchievements = globalUnlocked;
+      _globalUnlockedAchievements = globalUnlocked.toSet();
       _isLoading = false;
     });
   }
@@ -63,6 +61,30 @@ class _AchievementsViewState extends State<AchievementsView> {
             ),
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(Icons.filter_list),
+            onSelected: (value) {
+              setState(() {
+                _filter = value;
+              });
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'All',
+                child: Text('All Achievements'),
+              ),
+              PopupMenuItem(
+                value: 'Unlocked',
+                child: Text('Unlocked Only'),
+              ),
+              PopupMenuItem(
+                value: 'Locked',
+                child: Text('Locked Only'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: _isLoading 
           ? Center(child: CircularProgressIndicator())
@@ -82,14 +104,70 @@ class _AchievementsViewState extends State<AchievementsView> {
           _buildSummaryCard(),
           SizedBox(height: 24),
           
+          // Filter indicator
+          if (_filter != 'All')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _filter == 'Unlocked' ? Icons.lock_open : Icons.lock,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Showing $_filter Achievements',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _filter = 'All';
+                        });
+                      },
+                      child: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          
           // Achievement categories
           ...achievementCategories.entries.map((category) {
+            // Filter achievements based on selected filter
+            final filteredAchievements = category.value.where((achievement) {
+              final isUnlocked = _globalUnlockedAchievements.contains(achievement.id);
+              if (_filter == 'Unlocked') return isUnlocked;
+              if (_filter == 'Locked') return !isUnlocked;
+              return true;
+            }).toList();
+            
+            // Skip empty categories
+            if (filteredAchievements.isEmpty) return SizedBox();
+            
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCategoryHeader(category.key),
                 SizedBox(height: 12),
-                _buildCategoryGrid(category.value),
+                _buildCategoryGrid(filteredAchievements),
                 SizedBox(height: 24),
               ],
             );

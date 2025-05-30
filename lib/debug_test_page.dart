@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flux/habit.dart';
 import 'package:flux/storage_service.dart';
 import 'package:flux/achievements_system.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flux/theme_service.dart';
+import 'package:flux/achievements/achievement_base.dart';
 
 class DebugTestPage extends StatefulWidget {
   const DebugTestPage({Key? key}) : super(key: key);
@@ -102,6 +105,15 @@ class _DebugTestPageState extends State<DebugTestPage> {
                     icon: Icons.clear_all,
                     color: Colors.orange,
                     onTap: _clearAllAchievements,
+                  ),
+                  
+                  SizedBox(height: 12),
+                  _buildTestCard(
+                    title: 'Show Achievement Dialog',
+                    description: 'Tests the achievement celebration overlay',
+                    icon: Icons.celebration,
+                    color: Colors.amber,
+                    onTap: _showTestAchievementDialog,
                   ),
                   
                   SizedBox(height: 24),
@@ -328,54 +340,99 @@ class _DebugTestPageState extends State<DebugTestPage> {
   }
   
   Future<void> _unlockAllAchievements() async {
+    setState(() => _isLoading = true);
+    
+    // Get all achievement IDs
+    final allAchievementIds = AchievementsSystem.achievementDefinitions.keys.toList();
+    
+    // Store in global achievements
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('global_achievements', allAchievementIds);
+    
+    // Also add to each habit for backward compatibility
     for (final habit in _habits) {
-      habit.unlockedAchievements.addAll(AchievementsSystem.achievementDefinitions.keys);
+      habit.unlockedAchievements = Set<String>.from(allAchievementIds).toList();
       await StorageService.save(habit);
     }
     
+    // Unlock all themes
+    final allThemes = ThemeService.themePresets.keys.toList();
+    await prefs.setStringList('unlocked_themes', allThemes);
+    
+    // Unlock all shop items
+    final purchasedItems = [
+      'Emoji Pack', 'Sport Icons', 'Nature Pack', 'Tech Icons',
+      'Food & Drink', 'Travel Pack', 'Minimalist Set', 'Vintage Collection',
+      'Advanced Analytics', 'Custom Widgets', 'Habit Templates', 'Export Data',
+      'Goal Tracking', 'Habit Streaks+', 'Smart Reminders', 'Mood Tracking',
+      'Habit Groups', 'Time Tracking'
+    ];
+    await prefs.setStringList('purchased_items', purchasedItems);
+    
+    setState(() => _isLoading = false);
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('All achievements unlocked! 🏆'),
+        content: Text('All achievements, themes and shop items unlocked!'),
         backgroundColor: Colors.green,
       ),
     );
-    
-    _loadHabits();
   }
   
   Future<void> _clearAllAchievements() async {
+    setState(() => _isLoading = true);
+    
+    // Clear global achievements
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('global_achievements', []);
+    
+    // Clear each habit's achievements
     for (final habit in _habits) {
-      habit.unlockedAchievements.clear();
+      habit.unlockedAchievements = <String>[];
       await StorageService.save(habit);
     }
     
+    setState(() => _isLoading = false);
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('All achievements cleared'),
+        content: Text('All achievements cleared!'),
         backgroundColor: Colors.orange,
       ),
     );
-    
-    _loadHabits();
   }
   
   Future<void> _addPointsToAllHabits(int points) async {
+    setState(() => _isLoading = true);
+    
     for (final habit in _habits) {
+      // Add points without triggering achievements
       habit.totalPoints += points;
-      habit.experiencePoints += points;
-      // Recalculate level
-      habit.level = (habit.experiencePoints / 1000).floor() + 1;
+      
+      // Calculate level
+      int newLevel = 1;
+      int pointsNeeded = 100;
+      int remainingPoints = habit.totalPoints;
+      
+      while (remainingPoints >= pointsNeeded) {
+        remainingPoints -= pointsNeeded;
+        newLevel++;
+        pointsNeeded = (newLevel * 100);
+      }
+      
+      habit.level = newLevel;
+      
       await StorageService.save(habit);
     }
     
+    setState(() => _isLoading = false);
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added $points points to all habits! ⭐'),
-        backgroundColor: Colors.amber,
+        content: Text('Added $points points to all habits!'),
+        backgroundColor: Colors.green,
       ),
     );
-    
-    _loadHabits();
   }
   
   Future<void> _maxOutAllLevels() async {
@@ -433,5 +490,27 @@ class _DebugTestPageState extends State<DebugTestPage> {
         backgroundColor: Colors.deepOrange,
       ),
     );
+  }
+  
+  void _showTestAchievementDialog() {
+    // Create a test achievement
+    final testAchievement = AchievementEarned(
+      definition: AchievementDefinition(
+        id: 'test_achievement',
+        name: 'Test Achievement',
+        description: 'This is a test achievement for debugging purposes',
+        icon: Icons.star,
+        color: Colors.amber,
+        points: 100,
+        rarity: AchievementRarity.legendary,
+        isBadAchievement: false,
+        checkCondition: (_) => true,
+      ),
+      earnedAt: DateTime.now(),
+      habitName: 'Test Habit',
+    );
+    
+    // Show the celebration effect
+    AchievementsSystem.showCelebrationEffect(context, testAchievement);
   }
 } 

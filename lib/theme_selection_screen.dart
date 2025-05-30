@@ -35,8 +35,23 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
   
   Future<void> _loadUnlockedThemes() async {
     final prefs = await SharedPreferences.getInstance();
+    List<String> unlocked = prefs.getStringList('unlocked_themes') ?? ['Default'];
+    
+    // Ensure the first 4 theme packs are always unlocked
+    final defaultUnlocked = ['Default', 'Ocean', 'Sunset', 'Forest'];
+    for (final theme in defaultUnlocked) {
+      if (!unlocked.contains(theme)) {
+        unlocked.add(theme);
+      }
+    }
+    
+    // Save the updated list if we added any themes
+    if (unlocked.length > (prefs.getStringList('unlocked_themes') ?? ['Default']).length) {
+      await prefs.setStringList('unlocked_themes', unlocked);
+    }
+    
     setState(() {
-      _unlockedThemes = prefs.getStringList('unlocked_themes') ?? ['Default'];
+      _unlockedThemes = unlocked;
     });
   }
   

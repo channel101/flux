@@ -10,6 +10,7 @@ import 'package:flux/achievements/consistency_achievements.dart';
 import 'package:flux/achievements/special_achievements.dart';
 import 'package:flux/achievements/legendary_achievements.dart';
 import 'package:flux/achievements/bad_achievements.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AchievementsSystem {
   // Combined achievement definitions from all categories
@@ -27,11 +28,13 @@ class AchievementsSystem {
   // Check and award achievements for a habit
   static Future<List<AchievementEarned>> checkAndAwardAchievements(Habit habit) async {
     final newAchievements = <AchievementEarned>[];
+    final prefs = await SharedPreferences.getInstance();
+    final globalUnlockedAchievements = prefs.getStringList('global_achievements') ?? [];
     
     // Check each achievement definition
     for (final achievement in achievementDefinitions.values) {
-      // Skip if already unlocked
-      if (habit.unlockedAchievements.contains(achievement.id)) {
+      // Skip if already unlocked globally
+      if (globalUnlockedAchievements.contains(achievement.id)) {
         continue;
       }
       
@@ -45,7 +48,11 @@ class AchievementsSystem {
         
         newAchievements.add(earned);
         
-        // Add to habit's unlocked achievements
+        // Add to global unlocked achievements
+        globalUnlockedAchievements.add(achievement.id);
+        await prefs.setStringList('global_achievements', globalUnlockedAchievements);
+        
+        // Also add to habit's unlocked achievements for backward compatibility
         habit.unlockedAchievements.add(achievement.id);
         
         // Award points to habit
@@ -95,15 +102,17 @@ class AchievementsSystem {
   }
   
   // Get all achievements for a habit
-  static List<AchievementEarned> getEarnedAchievements(Habit habit) {
+  static Future<List<AchievementEarned>> getGlobalAchievements() async {
+    final prefs = await SharedPreferences.getInstance();
+    final globalUnlockedAchievements = prefs.getStringList('global_achievements') ?? [];
     final earned = <AchievementEarned>[];
     
-    for (final achievementId in habit.unlockedAchievements) {
+    for (final achievementId in globalUnlockedAchievements) {
       if (achievementDefinitions.containsKey(achievementId)) {
         earned.add(AchievementEarned(
           definition: achievementDefinitions[achievementId]!,
           earnedAt: DateTime.now(), // This would be stored properly in a real app
-          habitName: habit.name,
+          habitName: 'Global Achievement',
         ));
       }
     }
@@ -338,7 +347,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
             child: Container(
               width: double.infinity,
               height: double.infinity,
-              color: Colors.black54,
+              color: Colors.black.withOpacity(0.3),
             ),
           ),
           

@@ -87,11 +87,11 @@ class _AddHabitSheetState extends State<AddHabitSheet> with TickerProviderStateM
         right: 16
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: Colors.black26,
             blurRadius: 10,
             spreadRadius: 5,
           ),
