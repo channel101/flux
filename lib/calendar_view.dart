@@ -4,6 +4,7 @@ import 'package:flux/habit.dart';
 import 'package:flux/habit_entry.dart';
 import 'package:flux/add_entry_dialog.dart';
 import 'package:flux/storage_service.dart';
+import 'package:flux/main.dart';
 import 'package:intl/intl.dart';
 
 class CalendarView extends StatefulWidget {
@@ -65,7 +66,7 @@ class _CalendarViewState extends State<CalendarView> {
       if (_shouldHaveEntry(day)) {
         return Colors.red.withOpacity(0.3); // Missed day
       }
-      return Colors.grey.withOpacity(0.1); // No entry expected
+      return Colors.transparent; // No entry expected
     }
     
     final entry = entries.first;
@@ -81,9 +82,37 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   bool _shouldHaveEntry(DateTime day) {
-    // Simple check - this could be enhanced based on habit frequency
-    final daysSinceStart = DateTime.now().difference(day).inDays;
-    return daysSinceStart >= 0 && daysSinceStart <= 30; // Only check last 30 days
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final checkDay = DateTime(day.year, day.month, day.day);
+    
+    // Don't mark future days as missed
+    if (checkDay.isAfter(today)) return false;
+    
+    // Don't mark days before habit creation as missed
+    if (widget.habit.entries.isNotEmpty) {
+      final firstEntryDate = widget.habit.entries
+          .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
+          .reduce((a, b) => a.isBefore(b) ? a : b);
+      if (checkDay.isBefore(firstEntryDate)) return false;
+    }
+    
+    // Check if habit was due on this day based on frequency
+    switch (widget.habit.frequency) {
+      case HabitFrequency.Daily:
+        return true;
+      case HabitFrequency.Weekdays:
+        return day.weekday <= 5; // Monday = 1, Friday = 5
+      case HabitFrequency.Weekends:
+        return day.weekday > 5; // Saturday = 6, Sunday = 7
+      case HabitFrequency.CustomDays:
+        final dayIndex = day.weekday % 7; // Convert to 0=Sunday format
+        return widget.habit.customDays.contains(dayIndex);
+      case HabitFrequency.XTimesPerWeek:
+      case HabitFrequency.XTimesPerMonth:
+        // For frequency-based habits, don't mark individual days as missed
+        return false;
+    }
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {

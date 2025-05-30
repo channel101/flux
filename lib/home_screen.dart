@@ -24,11 +24,19 @@ import 'package:flux/quick_entry_widget.dart';
 import 'package:flux/bulk_edit_screen.dart';
 import 'package:flux/widget_service.dart';
 import 'package:flux/achievements_view.dart';
+import 'package:flux/backup_import_screen.dart';
+import 'package:flux/points_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final bool isDarkMode;
-  HomeScreen({required this.toggleTheme, required this.isDarkMode});
+  final Function(String)? changeTheme;
+  
+  HomeScreen({
+    required this.toggleTheme, 
+    required this.isDarkMode,
+    this.changeTheme,
+  });
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -213,100 +221,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  void _showExportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Export Data'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.code, color: Colors.blue),
-              title: Text('Export as JSON'),
-              subtitle: Text('Complete data with all metadata'),
-              onTap: () async {
-                try {
-                  final jsonData = await DataService.exportToJson(_filteredHabits);
-                  final filename = 'flux_export_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.json';
-                  await DataService.shareData(jsonData, filename, 'application/json');
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Data exported successfully!')),
-                  );
-                } catch (e) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Export failed: $e')),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.table_chart, color: Colors.green),
-              title: Text('Export as CSV'),
-              subtitle: Text('Spreadsheet-compatible format'),
-              onTap: () async {
-                try {
-                  final csvData = await DataService.exportToCsv(_filteredHabits);
-                  final filename = 'flux_export_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
-                  await DataService.shareData(csvData, filename, 'text/csv');
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Data exported successfully!')),
-                  );
-                } catch (e) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Export failed: $e')),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.description, color: Colors.orange),
-              title: Text('Generate Report'),
-              subtitle: Text('Detailed summary report'),
-              onTap: () async {
-                try {
-                  final report = await DataService.generateSummaryReport(_filteredHabits);
-                  final filename = 'flux_report_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.txt';
-                  await DataService.shareData(report, filename, 'text/plain');
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Report generated successfully!')),
-                  );
-                } catch (e) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Report generation failed: $e')),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-        ],
+  void _openBackupScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BackupImportScreen(),
       ),
     );
   }
 
-  void _createBackup() async {
-    try {
-      await DataService.createBackup(_habits);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup created successfully!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup failed: $e')),
-      );
-    }
+  void _openPointsScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PointsScreen(),
+      ),
+    );
   }
 
   void _showYearInReview() {
@@ -416,11 +346,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   case 'bulk_edit':
                     _openBulkEdit();
                     break;
-                  case 'export':
-                    _showExportDialog();
+                  case 'points':
+                    _openPointsScreen();
                     break;
                   case 'backup':
-                    _createBackup();
+                    _openBackupScreen();
                     break;
                   case 'year_review':
                     _showYearInReview();
@@ -443,12 +373,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
                 PopupMenuDivider(),
                 PopupMenuItem(
-                  value: 'export',
+                  value: 'points',
                   child: Row(
                     children: [
-                      Icon(Icons.download, size: 18),
+                      Icon(Icons.stars, size: 18),
                       SizedBox(width: 8),
-                      Text('Export Data'),
+                      Text('Points & Rewards'),
                     ],
                   ),
                 ),
@@ -458,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     children: [
                       Icon(Icons.backup, size: 18),
                       SizedBox(width: 8),
-                      Text('Create Backup'),
+                      Text('Backup & Import'),
                     ],
                   ),
                 ),

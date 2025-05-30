@@ -54,6 +54,8 @@ dependencies:
   confetti: ^0.7.0
   flutter_staggered_animations: ^1.1.1
   lottie: ^3.1.2
+  file_picker: ^8.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

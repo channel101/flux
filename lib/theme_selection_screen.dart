@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flux/theme_service.dart';
 import 'package:flux/settings_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeSelectionScreen extends StatefulWidget {
   final Function(ThemeData) onThemeChanged;
@@ -16,17 +17,26 @@ class ThemeSelectionScreen extends StatefulWidget {
 
 class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
   String _selectedTheme = 'default';
+  List<String> _unlockedThemes = [];
   
   @override
   void initState() {
     super.initState();
     _loadSelectedTheme();
+    _loadUnlockedThemes();
   }
   
   Future<void> _loadSelectedTheme() async {
     final savedTheme = await SettingsService.getSelectedTheme();
     setState(() {
       _selectedTheme = savedTheme;
+    });
+  }
+  
+  Future<void> _loadUnlockedThemes() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _unlockedThemes = prefs.getStringList('unlocked_themes') ?? ['Default'];
     });
   }
   
@@ -188,9 +198,10 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
     bool isDark = false,
   }) {
     final isSelected = _selectedTheme == themeKey;
+    final isUnlocked = _unlockedThemes.contains(themeName) || themeName == 'Default';
     
     return GestureDetector(
-      onTap: () => _selectTheme(themeKey, theme),
+      onTap: isUnlocked ? () => _selectTheme(themeKey, theme) : () => _showLockedDialog(themeName),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -212,145 +223,187 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: Container(
-            color: theme.colorScheme.surface,
-            child: Column(
-              children: [
-                // Header
-                Container(
-                  height: 40,
-                  color: primaryColor,
-                  child: Row(
-                    children: [
-                      SizedBox(width: 8),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.4),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Content area
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Column(
-                      children: [
-                        // Sample card
-                        Container(
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: theme.cardColor,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: Colors.grey.withOpacity(0.2),
+          child: Stack(
+            children: [
+              Container(
+                color: theme.colorScheme.surface,
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
+                      height: 40,
+                      color: primaryColor,
+                      child: Row(
+                        children: [
+                          SizedBox(width: 8),
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.8),
+                              shape: BoxShape.circle,
                             ),
                           ),
-                        ),
-                        
-                        SizedBox(height: 8),
-                        
-                        // Theme name
-                        Text(
-                          themeName,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: theme.textTheme.bodyLarge?.color,
+                          SizedBox(width: 4),
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.6),
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        
-                        SizedBox(height: 4),
-                        
-                        // Color indicator
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          SizedBox(width: 4),
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.4),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content area
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Column(
                           children: [
+                            // Sample card
                             Container(
-                              width: 8,
-                              height: 8,
+                              height: 24,
                               decoration: BoxDecoration(
-                                color: primaryColor,
-                                shape: BoxShape.circle,
+                                color: theme.cardColor,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.grey.withOpacity(0.2),
+                                ),
                               ),
                             ),
-                            SizedBox(width: 2),
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.secondary,
-                                shape: BoxShape.circle,
+                            
+                            SizedBox(height: 8),
+                            
+                            // Theme name
+                            Text(
+                              themeName,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isUnlocked ? theme.textTheme.bodyLarge?.color : Colors.grey,
                               ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            if (isDark) ...[
-                              SizedBox(width: 2),
-                              Icon(
-                                Icons.dark_mode,
-                                size: 8,
-                                color: theme.textTheme.bodySmall?.color,
-                              ),
-                            ],
+                            
+                            SizedBox(height: 4),
+                            
+                            // Color indicator
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: primaryColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                SizedBox(width: 2),
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.secondary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                if (isDark) ...[
+                                  SizedBox(width: 2),
+                                  Icon(
+                                    Icons.dark_mode,
+                                    size: 8,
+                                    color: theme.textTheme.bodySmall?.color,
+                                  ),
+                                ],
+                              ],
+                            ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    
+                    // Selection indicator
+                    if (isSelected && isUnlocked)
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: 4),
+                        color: primaryColor,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Selected',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-                
-                // Selection indicator
-                if (isSelected)
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 4),
-                    color: primaryColor,
-                    child: Row(
+              ),
+              
+              // Lock overlay for locked themes
+              if (!isUnlocked)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.check,
+                          Icons.lock,
                           color: Colors.white,
-                          size: 16,
+                          size: 32,
                         ),
-                        SizedBox(width: 4),
+                        SizedBox(height: 4),
                         Text(
-                          'Selected',
+                          'Locked',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Buy in Shop',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 10,
                           ),
                         ),
                       ],
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -377,6 +430,30 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
         content: Text('Theme applied successfully! 🎨'),
         duration: Duration(seconds: 2),
         backgroundColor: theme.colorScheme.primary,
+      ),
+    );
+  }
+  
+  void _showLockedDialog(String themeName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Theme Locked'),
+        content: Text('The $themeName theme is locked. Purchase it in the Points & Shop to unlock!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context); // Go back to settings
+              // Navigate to points screen would be ideal here
+            },
+            child: Text('Go to Shop'),
+          ),
+        ],
       ),
     );
   }
