@@ -1,16 +1,28 @@
 // lib/main.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flux/habit.dart';
-import 'package:flux/home_screen.dart';
-import 'package:flux/settings_service.dart';
-import 'package:flux/notification_service.dart';
-import 'package:flux/widget_service.dart';
-import 'package:flux/theme_service.dart';
-import 'package:flux/onboarding_screen.dart';
+import 'package:flux/core/enums/app_enums.dart';
+import 'package:flux/data/models/habit.dart';
+import 'package:flux/features/home/home_screen.dart';
+import 'package:flux/core/services/settings_service.dart';
+import 'package:flux/core/services/notification_service.dart';
+import 'package:flux/core/services/widget_service.dart';
+import 'package:flux/core/services/theme_service.dart';
+import 'package:flux/features/onboarding/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flux/core/services/storage_service.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize sqflite_ffi for Windows
+  if (Platform.isWindows || Platform.isLinux) {
+    // Initialize FFI
+    sqfliteFfiInit();
+    // Change the default factory
+    databaseFactory = databaseFactoryFfi;
+  }
   
   // Initialize services
   await NotificationService.initialize();
@@ -19,6 +31,15 @@ void main() async {
   // Check if first launch
   final prefs = await SharedPreferences.getInstance();
   final isFirstLaunch = prefs.getBool('first_launch') ?? true;
+  
+  // Check if database migration has been done
+  final dbMigrationDone = prefs.getBool('db_migration_done') ?? false;
+  
+  // Perform database migration if not done yet
+  if (!dbMigrationDone) {
+    await migrateToDatabase();
+    await prefs.setBool('db_migration_done', true);
+  }
   
   // Load theme settings
   final isDarkMode = await SettingsService.isDarkMode();
@@ -29,6 +50,17 @@ void main() async {
     selectedTheme: selectedTheme,
     isFirstLaunch: isFirstLaunch,
   ));
+}
+
+// Function to migrate data from JSON to SQLite
+Future<void> migrateToDatabase() async {
+  try {
+    print('Starting database migration...');
+    await StorageService.migrateFromJsonToDatabase();
+    print('Database migration completed successfully!');
+  } catch (e) {
+    print('Error during database migration: $e');
+  }
 }
 
 class HabitTrackerApp extends StatefulWidget {
@@ -367,51 +399,4 @@ class DetailItem {
   final String value;
   
   DetailItem({required this.label, required this.value});
-}
-
-enum HabitType { FailBased, SuccessBased, DoneBased }
-enum ReportDisplay { Rate, Streak }
-
-// New enums for enhanced features
-enum HabitFrequency { 
-  Daily, 
-  Weekdays, 
-  Weekends, 
-  CustomDays, 
-  XTimesPerWeek, 
-  XTimesPerMonth 
-}
-
-enum HabitUnit {
-  Count,
-  Minutes,
-  Hours,
-  Pages,
-  Kilometers,
-  Miles,
-  Grams,
-  Pounds,
-  Dollars,
-  Custom
-}
-
-// Add a global utility function to format PascalCase or camelCase to spaced text
-String formatPascalCase(String text) {
-  if (text.isEmpty) return text;
-  
-  // Handle case where the text is already formatted with spaces
-  if (text.contains(' ')) return text;
-  
-  // Add a space before each capital letter, but not the first one
-  final formattedText = text.replaceAllMapped(
-    RegExp(r'(?<=[a-z])[A-Z]'),
-    (match) => ' ${match.group(0)}',
-  );
-  
-  // Capitalize the first letter
-  if (formattedText.isNotEmpty) {
-    return formattedText[0].toUpperCase() + formattedText.substring(1);
-  }
-  
-  return formattedText;
 }
