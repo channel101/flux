@@ -182,6 +182,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onChanged: (_) => widget.toggleTheme(),
           secondary: Icon(widget.isDarkMode ? Icons.dark_mode : Icons.light_mode),
         ),
+        ListTile(
+          title: Text('Choose Theme'),
+          subtitle: Text('Select from 40+ available themes'),
+          leading: Icon(Icons.palette),
+          trailing: Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ThemeSelectionScreen(
+                onThemeChanged: (theme) {
+                  // Theme change is handled in ThemeSelectionScreen
+                },
+              ),
+            ),
+          ),
+        ),
         SwitchListTile(
           title: Text('Compact Mode'),
           subtitle: Text('Show more content in less space'),

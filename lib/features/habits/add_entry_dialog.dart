@@ -5,20 +5,13 @@ import 'package:flux/core/enums/app_enums.dart';
 import 'package:flux/data/models/habit.dart';
 import 'package:flux/data/models/habit_entry.dart';
 import 'package:flux/main.dart';
-import 'package:intl/intl.dart';
 
 class AddEntryDialog extends StatefulWidget {
   final Habit habit;
   final int dayNumber;
   final Function(HabitEntry) onSave;
-  final DateTime? selectedDate;
 
-  const AddEntryDialog({
-    required this.habit, 
-    required this.dayNumber, 
-    required this.onSave, 
-    this.selectedDate,
-  });
+  const AddEntryDialog({required this.habit, required this.dayNumber, required this.onSave});
 
   @override
   _AddEntryDialogState createState() => _AddEntryDialogState();
@@ -60,73 +53,37 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
   }
 
   String get _getMainTitle {
-    if (_isSkipped) {
-      if (widget.selectedDate != null) {
-        final formatter = DateFormat('MMM d, yyyy');
-        return 'Skipping ${formatter.format(widget.selectedDate!)}';
-      }
-      return 'Skipping Day ${widget.dayNumber}';
-    }
+    if (_isSkipped) return 'Skipping Day ${widget.dayNumber}';
 
-    String baseTitle;
     if (widget.habit.unit != HabitUnit.Count && widget.habit.targetValue != null) {
       switch (widget.habit.type) {
         case HabitType.FailBased:
-          baseTitle = 'Track Failure';
-          break;
+          return 'Track Failure';
         case HabitType.SuccessBased:
-          baseTitle = 'Track Progress';
-          break;
+          return 'Track Progress';
         case HabitType.DoneBased:
-          baseTitle = 'Mark as Done';
-          break;
+          return 'Mark as Done';
       }
     } else {
       switch (widget.habit.type) {
         case HabitType.FailBased:
-          baseTitle = 'Track Failure';
-          break;
+          return 'Track Failure';
         case HabitType.SuccessBased:
-          baseTitle = 'Track Success';
-          break;
+          return 'Track Success';
         case HabitType.DoneBased:
-          baseTitle = 'Mark Completion';
-          break;
+          return 'Mark Completion';
       }
     }
-
-    // Add date if available
-    if (widget.selectedDate != null) {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final selectedDay = DateTime(widget.selectedDate!.year, widget.selectedDate!.month, widget.selectedDate!.day);
-      
-      if (selectedDay.isAtSameMomentAs(today)) {
-        return '$baseTitle for Today';
-      } else {
-        final formatter = DateFormat('MMM d, yyyy');
-        return '$baseTitle for ${formatter.format(widget.selectedDate!)}';
-      }
-    }
-    
-    return baseTitle;
   }
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 360;
-    final screenSize = MediaQuery.of(context).size;
-    final isLandscape = screenSize.width > screenSize.height;
-    
     return Dialog(
       backgroundColor: Colors.transparent,
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Container(
-          constraints: BoxConstraints(
-            maxWidth: 400, 
-            maxHeight: MediaQuery.of(context).size.height * (isLandscape ? 0.9 : 0.8)
-          ),
+          constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.8),
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(24),
@@ -138,19 +95,17 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
               _buildHeader(),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(24, 16, 24, 24),
+                  padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      SizedBox(height: 20),
                       _buildSkipSection(),
                       if (!_isSkipped) ...[
                         SizedBox(height: 20),
-                        _buildSimplifiedContent(isSmallScreen),
-                        if (widget.habit.targetValue != null) ...[
-                          SizedBox(height: 16),
-                          _buildTargetProgressIndicator(),
-                        ],
-                        SizedBox(height: 16),
+                        _buildMainContent(),
+                        if (widget.habit.targetValue != null && !_isSkipped) ...[SizedBox(height: 20), _buildTargetProgressIndicator()],
+                        SizedBox(height: 20),
                         _buildNotesSection(),
                       ] else ...[
                         SizedBox(height: 20),
@@ -255,23 +210,50 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
     );
   }
 
-  Widget _buildSimplifiedContent(bool isSmallScreen) {
+  Widget _buildMainContent() {
     if (widget.habit.type == HabitType.DoneBased && widget.habit.unit == HabitUnit.Count) {
-      // Simple done/not done toggle
-      return AnimatedContainer(
-        duration: Duration(milliseconds: 300),
-        height: 80,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: _isDone ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _isDone ? Colors.green : Colors.red, width: 2),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => setState(() => _isDone = !_isDone),
+      return _buildDoneTypeInput();
+    } else {
+      return _buildValueInput();
+    }
+  }
+
+  Widget _buildDoneTypeInput() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Did you complete this habit today?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              ),
+              Switch(
+                value: _isDone,
+                onChanged: (value) {
+                  setState(() {
+                    _isDone = value;
+                  });
+                },
+                activeColor: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            height: 80,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: _isDone ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _isDone ? Colors.green : Colors.red, width: 2),
+            ),
             child: Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -286,302 +268,247 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
               ),
             ),
           ),
-        ),
-      );
-    } else if (widget.habit.unit == HabitUnit.Count) {
-      // Count-based input with buttons
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'How many ${widget.habit.getUnitDisplayName()}?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 16),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withOpacity(0.2)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Minus button - hide on small screens
-                if (!isSmallScreen)
-                IconButton(
-                  onPressed: () {
-                    final currentValue = int.tryParse(_countController.text) ?? 0;
-                    if (currentValue > 0) {
-                      _countController.text = (currentValue - 1).toString();
-                      setState(() {
-                        _sliderValue = (currentValue - 1).clamp(0, 50);
-                      });
-                    }
-                  },
-                  icon: Icon(Icons.remove_circle, size: 32, color: Theme.of(context).colorScheme.primary),
-                ),
-                
-                // Count display
-                Expanded(
-                  child: TextFormField(
-                    controller: _countController,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: '0',
-                      suffixText: widget.habit.getUnitDisplayName(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      final intValue = int.tryParse(value) ?? 0;
-                      setState(() {
-                        _sliderValue = intValue.clamp(0, 50);
-                      });
-                    },
-                  ),
-                ),
-                
-                // Plus button - hide on small screens
-                if (!isSmallScreen)
-                IconButton(
-                  onPressed: () {
-                    final currentValue = int.tryParse(_countController.text) ?? 0;
-                    _countController.text = (currentValue + 1).toString();
-                    setState(() {
-                      _sliderValue = (currentValue + 1).clamp(0, 50);
-                    });
-                  },
-                  icon: Icon(Icons.add_circle, size: 32, color: Theme.of(context).colorScheme.primary),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 16),
-          
-          // Quick buttons - always show on small screens to replace +/- buttons
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              if (isSmallScreen) ...[
-                _buildQuickButton('-1', -1),
-                _buildQuickButton('+1', 1),
-              ],
-              _buildQuickButton('+5', 5),
-              _buildQuickButton('+10', 10),
-              _buildQuickButton('Reset', -99),
-            ],
-          ),
         ],
-      );
-    } else if (widget.habit.unit == HabitUnit.Minutes) {
-      // Time input
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Duration (minutes):',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 16),
-          
-          // Enhanced time input with clock visualization
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withOpacity(0.2)),
-            ),
-            child: Column(
-              children: [
-                // Time input field
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Minus button - hide on small screens
-                    if (!isSmallScreen)
-                    IconButton(
-                      onPressed: () {
-                        final currentValue = double.tryParse(_valueController.text) ?? 0;
-                        if (currentValue > 0) {
-                          _valueController.text = (currentValue - 5).clamp(0, 300).toString();
-                        }
-                      },
-                      icon: Icon(Icons.remove_circle, size: 32, color: Theme.of(context).colorScheme.primary),
-                    ),
-                    
-                    // Time display
-                    Expanded(
-                      child: TextFormField(
-                        controller: _valueController,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: '0',
-                          suffixText: 'min',
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    
-                    // Plus button - hide on small screens
-                    if (!isSmallScreen)
-                    IconButton(
-                      onPressed: () {
-                        final currentValue = double.tryParse(_valueController.text) ?? 0;
-                        _valueController.text = (currentValue + 5).toString();
-                      },
-                      icon: Icon(Icons.add_circle, size: 32, color: Theme.of(context).colorScheme.primary),
-                    ),
-                  ],
-                ),
-                
-                SizedBox(height: 16),
-                
-                // Clock visualization
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
-                    SizedBox(width: 8),
-                    Text(
-                      _getTimeDisplay(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          SizedBox(height: 16),
-          
-          // Quick time buttons - always show on small screens
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              if (isSmallScreen) ...[
-                _buildQuickButton('-5 min', -5),
-                _buildQuickButton('+5 min', 5),
-              ],
-              _buildQuickButton('15 min', 15),
-              _buildQuickButton('30 min', 30),
-              _buildQuickButton('60 min', 60),
-            ],
-          ),
-        ],
-      );
-    } else {
-      // Value-based input (for other units)
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Enter ${widget.habit.getUnitDisplayName()}:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 16),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withOpacity(0.2)),
-            ),
-            child: Row(
-              children: [
-                // Only show buttons on larger screens
-                if (!isSmallScreen)
-                IconButton(
-                  onPressed: () {
-                    final currentValue = double.tryParse(_valueController.text) ?? 0;
-                    if (currentValue > 0) {
-                      _valueController.text = (currentValue - 1).clamp(0, double.infinity).toString();
-                    }
-                  },
-                  icon: Icon(Icons.remove_circle, size: 28, color: Theme.of(context).colorScheme.primary),
-                ),
-                
-                Expanded(
-                  child: TextFormField(
-                    controller: _valueController,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: '0',
-                      suffixText: widget.habit.getUnitDisplayName(),
-                    ),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  ),
-                ),
-                
-                if (!isSmallScreen)
-                IconButton(
-                  onPressed: () {
-                    final currentValue = double.tryParse(_valueController.text) ?? 0;
-                    _valueController.text = (currentValue + 1).toString();
-                  },
-                  icon: Icon(Icons.add_circle, size: 28, color: Theme.of(context).colorScheme.primary),
-                ),
-              ],
-            ),
-          ),
-          
-          // Show quick buttons for small screens
-          if (isSmallScreen)
-          Padding(
-            padding: EdgeInsets.only(top: 16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                _buildQuickButton('-1', -1),
-                _buildQuickButton('+1', 1),
-                _buildQuickButton('+5', 5),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
+      ),
+    );
   }
 
-  String _getTimeDisplay() {
-    final minutes = int.tryParse(_valueController.text) ?? 0;
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    
-    if (hours > 0) {
-      return '$hours hr ${remainingMinutes > 0 ? '$remainingMinutes min' : ''}';
-    } else {
-      return '$minutes minutes';
-    }
+  Widget _buildValueInput() {
+    final hasTargetValue = widget.habit.targetValue != null;
+    final unitName = widget.habit.getUnitDisplayName();
+
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasTargetValue) ...[
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Theme.of(context).colorScheme.primary.withOpacity(0.1), Theme.of(context).colorScheme.primary.withOpacity(0.05)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.track_changes, color: Theme.of(context).colorScheme.primary, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Target Goal',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.primary),
+                        ),
+                        SizedBox(height: 4),
+                        Text('${widget.habit.targetValue} $unitName', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
+          ],
+
+          if (widget.habit.unit == HabitUnit.Count) ...[
+            Text('Enter Count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            SizedBox(height: 12),
+            
+            // Enhanced count input with stepper buttons
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+              ),
+              child: Column(
+                children: [
+                  // Stepper row with +/- buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Minus button
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            final currentValue = int.tryParse(_countController.text) ?? 0;
+                            if (currentValue > 0) {
+                              final newValue = currentValue - 1;
+                              _countController.text = newValue.toString();
+                              setState(() {
+                                _sliderValue = newValue;
+                              });
+                            }
+                          },
+                          icon: Icon(Icons.remove, color: Theme.of(context).colorScheme.primary),
+                          iconSize: 24,
+                        ),
+                      ),
+                      
+                      SizedBox(width: 20),
+                      
+                      // Count display and text field
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                          ),
+                          child: TextFormField(
+                            controller: _countController,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: '0',
+                              suffixText: unitName,
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                            ),
+                            keyboardType: TextInputType.number,
+                            onChanged: (value) {
+                              final intValue = int.tryParse(value) ?? 0;
+                              setState(() {
+                                _sliderValue = intValue.clamp(0, 50);
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      
+                      SizedBox(width: 20),
+                      
+                      // Plus button
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            final currentValue = int.tryParse(_countController.text) ?? 0;
+                            final newValue = currentValue + 1;
+                            _countController.text = newValue.toString();
+                            setState(() {
+                              _sliderValue = newValue;
+                            });
+                          },
+                          icon: Icon(Icons.add, color: Theme.of(context).colorScheme.primary),
+                          iconSize: 24,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  SizedBox(height: 16),
+                  
+                  // Quick increment buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildQuickButton('+1', 1),
+                      _buildQuickButton('+5', 5),
+                      _buildQuickButton('+10', 10),
+                      _buildQuickButton('Reset', -1), // Special case for reset
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            SizedBox(height: 16),
+            
+            // Enhanced slider
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Quick Slider', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                      Text('${_sliderValue.toString()} $unitName', 
+                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, 
+                                          color: Theme.of(context).colorScheme.primary)),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      thumbColor: Theme.of(context).colorScheme.primary,
+                      activeTrackColor: Theme.of(context).colorScheme.primary,
+                      inactiveTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      overlayColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 12),
+                      trackHeight: 6,
+                    ),
+                    child: Slider(
+                      value: _sliderValue.toDouble(),
+                      min: 0,
+                      max: 50,
+                      divisions: 50,
+                      onChanged: (value) {
+                        setState(() {
+                          _sliderValue = value.round();
+                          _countController.text = _sliderValue.toString();
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Text('Enter Amount', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            SizedBox(height: 12),
+            TextFormField(
+              controller: _valueController,
+              decoration: InputDecoration(
+                labelText: 'Amount',
+                hintText: '0.0',
+                suffixText: unitName,
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                ),
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildTargetProgressIndicator() {
@@ -797,61 +724,18 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
   }
 
   Widget _buildQuickButton(String label, int value) {
-    Color backgroundColor;
-    Color textColor;
-    
-    if (value < 0) {
-      if (value == -99) { // Reset button
-        backgroundColor = Colors.grey.withOpacity(0.2);
-        textColor = Colors.black87;
-      } else {
-        backgroundColor = Colors.red.withOpacity(0.1);
-        textColor = Colors.red;
-      }
-    } else {
-      backgroundColor = Theme.of(context).colorScheme.primary.withOpacity(0.1);
-      textColor = Theme.of(context).colorScheme.primary;
-    }
-    
     return Container(
       constraints: BoxConstraints(minWidth: 60),
       child: ElevatedButton(
         onPressed: () {
-          if (value == -99) {
-            // Reset button - handle both count and value inputs
-            if (widget.habit.unit == HabitUnit.Count) {
-              _countController.text = '0';
-              setState(() {
-                _sliderValue = 0;
-              });
-            } else {
-              _valueController.text = '0';
-            }
-          } else if (value < 0 && widget.habit.unit == HabitUnit.Minutes) {
-            // Decrement time value
-            final currentValue = int.tryParse(_valueController.text) ?? 0;
-            final newValue = (currentValue + value).clamp(0, 300);
-            _valueController.text = newValue.toString();
-          } else if (value < 0) {
-            // Decrement count value
-            final currentValue = int.tryParse(_countController.text) ?? 0;
-            final newValue = (currentValue + value).clamp(0, 50);
-            _countController.text = newValue.toString();
+          if (value == -1) {
+            // Reset button
+            _countController.text = '0';
             setState(() {
-              _sliderValue = newValue;
+              _sliderValue = 0;
             });
-          } else if (widget.habit.unit == HabitUnit.Minutes) {
-            // Set or add time value
-            if (label.contains('+')) {
-              // Add to current value
-              final currentValue = int.tryParse(_valueController.text) ?? 0;
-              _valueController.text = (currentValue + value).toString();
-            } else {
-              // Set to specific value
-              _valueController.text = value.toString();
-            }
           } else {
-            // Add value button for count
+            // Add value button
             final currentValue = int.tryParse(_countController.text) ?? 0;
             final newValue = currentValue + value;
             _countController.text = newValue.toString();
@@ -861,16 +745,16 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
           }
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: textColor,
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          minimumSize: Size(50, 36),
+          backgroundColor: value == -1 ? Colors.grey : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          foregroundColor: value == -1 ? Colors.white : Theme.of(context).colorScheme.primary,
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          minimumSize: Size(50, 32),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
         child: Text(
           label,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -880,7 +764,7 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
     if (_isSkipped) {
       // Create skipped entry with reason
       final entry = HabitEntry(
-        date: widget.selectedDate ?? DateTime.now(),
+        date: DateTime.now(),
         count: 0,
         dayNumber: widget.dayNumber,
         isSkipped: true,
@@ -905,7 +789,7 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
     }
 
     final entry = HabitEntry(
-      date: widget.selectedDate ?? DateTime.now(),
+      date: DateTime.now(),
       count: count,
       dayNumber: widget.dayNumber,
       value: value,

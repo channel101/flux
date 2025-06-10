@@ -26,7 +26,6 @@ import 'package:flux/core/services/widget_service.dart';
 import 'package:flux/features/achievements/achievements_view.dart';
 import 'package:flux/features/backup_and_import/backup_import_screen.dart';
 import 'package:flux/features/gamification/points_screen.dart';
-import 'package:flux/core/enums/app_enums.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -43,12 +42,12 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   List<Habit> _habits = [];
   List<Habit> _activeHabits = [];
   List<Habit> _archivedHabits = [];
   List<Habit> _filteredHabits = [];
-  int _selectedIndex = 0;
+  late TabController _tabController;
   bool _isLoading = true;
   int _totalPositiveDays = 0;
   int _totalNegativeDays = 0;
@@ -59,31 +58,17 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showArchived = false;
   String? _selectedCategory;
   List<String> _categories = [];
-  DateTime _selectedDate = DateTime.now();
-  ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _isLoading = true;
+    _tabController = TabController(length: 2, vsync: this);
     _loadHabits();
-    
-    // Scroll to current date in the next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        final centerIndex = 14; // Today's index in the date list
-        _scrollController.animateTo(
-          centerIndex * 65.0 - MediaQuery.of(context).size.width / 2 + 32.5,
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -246,15 +231,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openPointsScreen() {
-    // Points screen functionality commented out
-    /*
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PointsScreen(),
       ),
     );
-    */
   }
 
   void _showYearInReview() {
@@ -336,457 +318,135 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(_showArchived ? 'Archived Habits' : 'Flux', 
               style: TextStyle(fontWeight: FontWeight.bold)),
-            if (!_showArchived && _selectedCategory != null && _selectedIndex == 1)
+            if (!_showArchived && _selectedCategory != null)
               Text(
                 'Category: $_selectedCategory',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
               ),
           ],
         ),
-        actions: _buildAppBarActions(),
+        actions: [
+          if (!_showArchived && _categories.isNotEmpty)
+            IconButton(
+              icon: Icon(_selectedCategory != null ? Icons.filter_alt : Icons.filter_alt_outlined),
+              onPressed: _showCategoryFilter,
+              tooltip: 'Filter by Category',
+            ),
+          if (!_showArchived)
+            IconButton(
+              icon: Icon(Icons.analytics),
+              onPressed: _openAnalytics,
+              tooltip: 'Analytics Dashboard',
+            ),
+          if (!_showArchived && _filteredHabits.isNotEmpty)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert),
+              onSelected: (value) {
+                switch (value) {
+                  case 'bulk_edit':
+                    _openBulkEdit();
+                    break;
+                  case 'points':
+                    _openPointsScreen();
+                    break;
+                  case 'backup':
+                    _openBackupScreen();
+                    break;
+                  case 'year_review':
+                    _showYearInReview();
+                    break;
+                  case 'achievements':
+                    _openAchievements();
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'bulk_edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_note, size: 18),
+                      SizedBox(width: 8),
+                      Text('Bulk Edit'),
+                    ],
+                  ),
+                ),
+                PopupMenuDivider(),
+                PopupMenuItem(
+                  value: 'points',
+                  child: Row(
+                    children: [
+                      Icon(Icons.stars, size: 18),
+                      SizedBox(width: 8),
+                      Text('Points & Rewards'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'backup',
+                  child: Row(
+                    children: [
+                      Icon(Icons.backup, size: 18),
+                      SizedBox(width: 8),
+                      Text('Backup & Import'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'year_review',
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome, size: 18),
+                      SizedBox(width: 8),
+                      Text('Year in Review'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'achievements',
+                  child: Row(
+                    children: [
+                      Icon(Icons.emoji_events, size: 18),
+                      SizedBox(width: 8),
+                      Text('Achievements'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          IconButton(
+            icon: Icon(_showArchived ? Icons.inventory_2_outlined : Icons.archive),
+            onPressed: _toggleArchiveView,
+            tooltip: _showArchived ? 'Show Active Habits' : 'Show Archived',
+          ),
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: _openSettings,
+          ),
+        ],
+        bottom: !_showArchived ? TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'Habits'),
+            Tab(text: 'Dashboard'),
+          ],
+        ) : null,
       ),
+      floatingActionButton: !_showArchived ? FloatingActionButton(
+        onPressed: _showAddHabit,
+        child: Icon(Icons.add),
+      ) : null,
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : _showArchived 
               ? _buildArchivedList()
-              : _buildScreens()[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.repeat),
-            label: 'Habits',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-        ],
-      ),
-      floatingActionButton: !_showArchived && _selectedIndex < 2 ? FloatingActionButton(
-        onPressed: _showAddHabit,
-        child: Icon(Icons.add),
-      ) : null,
-    );
-  }
-  
-  List<Widget> _buildAppBarActions() {
-    if (_showArchived) {
-      return [
-        IconButton(
-          icon: Icon(Icons.inventory_2_outlined),
-          onPressed: _toggleArchiveView,
-          tooltip: 'Show Active Habits',
-        ),
-        IconButton(
-          icon: Icon(Icons.settings),
-          onPressed: _openSettings,
-        ),
-      ];
-    }
-    
-    if (_selectedIndex == 0) {
-      // Home screen actions
-      return [
-        IconButton(
-          icon: Icon(Icons.settings),
-          onPressed: _openSettings,
-        ),
-      ];
-    } else if (_selectedIndex == 1) {
-      // Habits screen actions
-      return [
-        if (_categories.isNotEmpty)
-          IconButton(
-            icon: Icon(_selectedCategory != null ? Icons.filter_alt : Icons.filter_alt_outlined),
-            onPressed: _showCategoryFilter,
-            tooltip: 'Filter by Category',
-          ),
-        IconButton(
-          icon: Icon(_showArchived ? Icons.inventory_2_outlined : Icons.archive),
-          onPressed: _toggleArchiveView,
-          tooltip: _showArchived ? 'Show Active Habits' : 'Show Archived',
-        ),
-        PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert),
-          onSelected: (value) {
-            switch (value) {
-              case 'bulk_edit':
-                _openBulkEdit();
-                break;
-              case 'backup':
-                _openBackupScreen();
-                break;
-              case 'year_review':
-                _showYearInReview();
-                break;
-              case 'achievements':
-                _openAchievements();
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'bulk_edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit_note, size: 18),
-                  SizedBox(width: 8),
-                  Text('Bulk Edit'),
-                ],
-              ),
-            ),
-            PopupMenuDivider(),
-            PopupMenuItem(
-              value: 'backup',
-              child: Row(
-                children: [
-                  Icon(Icons.backup, size: 18),
-                  SizedBox(width: 8),
-                  Text('Backup & Import'),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'year_review',
-              child: Row(
-                children: [
-                  Icon(Icons.auto_awesome, size: 18),
-                  SizedBox(width: 8),
-                  Text('Year in Review'),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'achievements',
-              child: Row(
-                children: [
-                  Icon(Icons.emoji_events, size: 18),
-                  SizedBox(width: 8),
-                  Text('Achievements'),
-                ],
-              ),
-            ),
-          ],
-        ),
-        IconButton(
-          icon: Icon(Icons.settings),
-          onPressed: _openSettings,
-        ),
-      ];
-    } else {
-      // Analytics screen actions
-      return [
-        IconButton(
-          icon: Icon(Icons.settings),
-          onPressed: _openSettings,
-        ),
-      ];
-    }
-  }
-  
-  List<Widget> _buildScreens() {
-    return [
-      _buildHomeScreen(),
-      _buildHabitsScreen(),
-      AnalyticsDashboard(habits: _activeHabits),
-    ];
-  }
-  
-  Widget _buildHomeScreen() {
-    if (_habits.isEmpty) {
-      return _buildEmpty();
-    }
-    
-    // Get habits for the selected date
-    final selectedDateHabits = _getHabitsForDate(_selectedDate);
-    
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildImprovedDateSelector(),
-          SizedBox(height: 16),
-          _buildEnhancedQuickEntry(selectedDateHabits),
-          SizedBox(height: 24),
-          Row(
-            children: [
-              Icon(
-                Icons.dashboard,
-                color: Theme.of(context).colorScheme.primary,
-                size: 24,
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Dashboard',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _filteredHabits.isEmpty ? _buildEmpty() : _buildHabitsList(_filteredHabits),
+                    _buildDashboard(),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          _buildDashboardSummary(),
-        ],
-      ),
-    );
-  }
-  
-  List<Habit> _getHabitsForDate(DateTime date) {
-    // For today, show habits that are due today
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final selectedDay = DateTime(date.year, date.month, date.day);
-    
-    if (selectedDay.isAtSameMomentAs(today)) {
-      return _filteredHabits.where((h) => h.isDueToday()).toList();
-    }
-    
-    // For past dates, show habits that had entries on that date
-    // For future dates, show habits based on their frequency
-    return _filteredHabits.where((habit) {
-      if (selectedDay.isBefore(today)) {
-        // Past date - check if there was an entry
-        return habit.entries.any((entry) {
-          final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
-          return entryDate.isAtSameMomentAs(selectedDay);
-        });
-      } else {
-        // Future date - check if habit would be due based on frequency
-        switch (habit.frequency) {
-          case HabitFrequency.Daily:
-            return true;
-          case HabitFrequency.Weekdays:
-            return selectedDay.weekday <= 5; // Monday = 1, Friday = 5
-          case HabitFrequency.Weekends:
-            return selectedDay.weekday > 5; // Saturday = 6, Sunday = 7
-          case HabitFrequency.CustomDays:
-            final dayIndex = selectedDay.weekday % 7; // Convert to 0=Sunday format
-            return habit.customDays.contains(dayIndex);
-          case HabitFrequency.XTimesPerWeek:
-          case HabitFrequency.XTimesPerMonth:
-            // These are harder to predict for future dates
-            return true;
-        }
-      }
-    }).toList();
-  }
-  
-  Widget _buildImprovedDateSelector() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final dates = List.generate(30, (index) {
-      final date = today.add(Duration(days: index - 14)); // 2 weeks before and after today
-      return date;
-    });
-    
-    final currentIndex = dates.indexWhere((date) => 
-      date.year == _selectedDate.year && 
-      date.month == _selectedDate.month && 
-      date.day == _selectedDate.day
-    );
-    
-    return Container(
-      height: 80,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Quick Entry',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              scrollDirection: Axis.horizontal,
-              itemCount: dates.length,
-              itemBuilder: (context, index) {
-                final date = dates[index];
-                final isSelected = date.year == _selectedDate.year && 
-                    date.month == _selectedDate.month && 
-                    date.day == _selectedDate.day;
-                
-                final isToday = date.year == today.year && 
-                    date.month == today.month && 
-                    date.day == today.day;
-                
-                final isWeekend = date.weekday == DateTime.saturday || 
-                    date.weekday == DateTime.sunday;
-                
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedDate = date;
-                    });
-                    
-                    // Scroll to the selected date
-                    _scrollController.animateTo(
-                      index * 65.0 - MediaQuery.of(context).size.width / 2 + 32.5,
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                  child: Container(
-                    width: 65,
-                    margin: EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : isWeekend
-                              ? Colors.grey.withOpacity(0.1)
-                              : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isToday && !isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : isSelected
-                                ? Colors.transparent
-                                : Colors.grey.withOpacity(0.3),
-                        width: isToday && !isSelected ? 2 : 1,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              )
-                            ]
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          DateFormat('E').format(date)[0], // First letter of day name
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected
-                                ? Colors.white
-                                : isWeekend
-                                    ? Colors.red
-                                    : Colors.grey[600],
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          date.day.toString(),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected
-                                ? Colors.white
-                                : isToday
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.black87,
-                          ),
-                        ),
-                        if (isToday && !isSelected)
-                          Container(
-                            margin: EdgeInsets.only(top: 4),
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildNoHabitsForDate() {
-    final isToday = _selectedDate.year == DateTime.now().year && 
-                    _selectedDate.month == DateTime.now().month && 
-                    _selectedDate.day == DateTime.now().day;
-                    
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Icon(
-              isToday ? Icons.check_circle : Icons.event_busy,
-              size: 48,
-              color: isToday ? Colors.green : Colors.grey,
-            ),
-            SizedBox(height: 12),
-            Text(
-              isToday 
-                ? 'No habits scheduled for today' 
-                : 'No habits for ${DateFormat('MMMM d').format(_selectedDate)}',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8),
-            Text(
-              isToday
-                ? 'Enjoy your free day or add new habits'
-                : _selectedDate.isAfter(DateTime.now())
-                    ? 'Plan ahead by adding habits'
-                    : 'No habit entries found for this date',
-              style: TextStyle(color: Colors.grey[600]),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildHabitsScreen() {
-    if (_filteredHabits.isEmpty) {
-      return _buildEmpty();
-    }
-    
-    return ListView.separated(
-      padding: EdgeInsets.all(16),
-      itemCount: _filteredHabits.length,
-      separatorBuilder: (_, __) => SizedBox(height: 8),
-      itemBuilder: (_, i) {
-        final habit = _filteredHabits[i];
-        return HabitListItem(
-          habit: habit,
-          onTap: () async {
-            await Navigator.push(
-              context, 
-              MaterialPageRoute(builder: (_) => HabitDetailScreen(habit: habit))
-            );
-            _loadHabits();
-          },
-        );
-      },
     );
   }
 
@@ -868,350 +528,426 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
-  Widget _buildEnhancedQuickEntry(List<Habit> habitsForDate) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final selectedDay = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-    final isToday = selectedDay.isAtSameMomentAs(today);
-    
-    // For past dates, show habits that had entries on that date
-    // For today and future dates, show habits based on their frequency
-    if (habitsForDate.isEmpty) {
-      return Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Icon(
-                isToday ? Icons.check_circle : Icons.event_busy,
-                size: 48,
-                color: isToday ? Colors.green : Colors.grey,
-              ),
-              SizedBox(height: 12),
-              Text(
-                isToday 
-                  ? 'No habits scheduled for today' 
-                  : 'No habits for ${DateFormat('MMMM d, yyyy').format(_selectedDate)}',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8),
-              Text(
-                isToday
-                  ? 'Enjoy your free day or add new habits'
-                  : _selectedDate.isAfter(now)
-                      ? 'Plan ahead by adding habits'
-                      : 'No habit entries found for this date',
-                style: TextStyle(color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+  Widget _buildHabitsList(List<Habit> habits) {
+    return ListView.separated(
+      padding: EdgeInsets.all(16),
+      itemCount: habits.length + 1, // Add 1 for QuickEntryWidget
+      separatorBuilder: (context, index) {
+        if (index == 0) return SizedBox(height: 16); // Space after quick entry
+        return SizedBox(height: 8);
+      },
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          // Quick entry widget at the top
+          return QuickEntryWidget(
+            habits: _habits,
+            onUpdate: _loadHabits,
+          );
+        }
+        
+        final habit = habits[index - 1];
+        return HabitListItem(
+          habit: habit,
+          onTap: () async {
+            await Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (_) => HabitDetailScreen(habit: habit))
+            );
+            _loadHabits();
+          },
+        );
+      },
+    );
+  }
+  
+  Widget _buildDashboard() {
+    if (_habits.isEmpty) {
+      return Center(
+        child: Text(
+          'Add habits to see your statistics',
+          style: TextStyle(color: Colors.grey),
         ),
       );
     }
     
-    // Count completed habits for the selected date
-    final completedHabits = habitsForDate.where((habit) {
-      return habit.entries.any((entry) {
-        final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
-        return entryDate.isAtSameMomentAs(selectedDay) && habit.isPositiveDay(entry);
-      });
-    }).toList();
-    
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('Overall Progress'),
+          SizedBox(height: 12),
+          _buildMetricsCards(),
+          SizedBox(height: 24),
+          
+          _buildSectionTitle('Success Rate by Habit'),
+          SizedBox(height: 12),
+          _buildSuccessRateChart(),
+          SizedBox(height: 24),
+          
+          _buildSectionTitle('Habit Streaks'),
+          SizedBox(height: 12),
+          _buildStreaksList(),
+          SizedBox(height: 24),
+          
+          _buildSectionTitle('Recent Entries'),
+          SizedBox(height: 12),
+          _buildRecentEntries(),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    );
+  }
+  
+  Widget _buildMetricsCards() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with progress info
-        Container(
-          margin: EdgeInsets.only(bottom: 12),
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.track_changes, 
-                size: 16, 
-                color: Theme.of(context).colorScheme.primary
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                title: 'Success Rate',
+                value: '${_overallSuccessRate.toStringAsFixed(1)}%',
+                icon: Icons.check_circle_outline,
+                color: Colors.green,
               ),
-              SizedBox(width: 6),
-              Text(
-                '${completedHabits.length}/${habitsForDate.length} completed',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                title: 'Total Entries',
+                value: '$_totalEntries',
+                icon: Icons.calendar_today,
+                color: Theme.of(context).colorScheme.primary,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        
-        // Quick entry list
-        ...habitsForDate.map((habit) => _buildQuickEntryItem(habit, selectedDay)),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                title: 'Positive Days',
+                value: '$_totalPositiveDays',
+                icon: Icons.thumb_up_alt_outlined,
+                color: Colors.green,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricCard(
+                title: 'Negative Days',
+                value: '$_totalNegativeDays',
+                icon: Icons.thumb_down_alt_outlined,
+                color: Colors.redAccent,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        if (_bestCurrentStreak > 0)
+          _buildMetricCard(
+            title: 'Best Current Streak',
+            value: '$_bestCurrentStreak days - $_bestStreakHabit',
+            icon: Icons.local_fire_department,
+            color: Colors.orange,
+            isWide: true,
+          ),
       ],
     );
   }
   
-  Widget _buildQuickEntryItem(Habit habit, DateTime selectedDate) {
-    // Check if this habit has a positive entry for the selected date
-    final isCompleted = habit.entries.any((entry) {
-      final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
-      return entryDate.isAtSameMomentAs(selectedDate) && habit.isPositiveDay(entry);
-    });
-    
-    // Find the existing entry for the selected date if any
-    final existingEntry = habit.entries.firstWhere(
-      (entry) {
-        final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
-        return entryDate.isAtSameMomentAs(selectedDate);
-      },
-      orElse: () => HabitEntry(date: DateTime.now(), dayNumber: 0, count: 0),
-    );
-    
-    final hasExistingEntry = existingEntry.dayNumber > 0;
-    
-    // Check if we're looking at today or a different date
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final isToday = selectedDate.isAtSameMomentAs(today);
-    
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    bool isWide = false,
+  }) {
     return Card(
       elevation: 2,
-      margin: EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => hasExistingEntry ? _editEntryForDate(habit, existingEntry, selectedDate) : _showAddEntryForDate(habit, selectedDate),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: isWide ? 16 : 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSuccessRateChart() {
+    if (_habits.isEmpty) {
+      return SizedBox();
+    }
+    
+    return Container(
+      height: 220,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Habit icon
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: habit.color?.withOpacity(0.1) ?? 
-                      Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: 100,
+              titlesData: FlTitlesData(
+                show: true,
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (double value, TitleMeta meta) {
+                      if (value.toInt() < _habits.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            _habits[value.toInt()].name.length > 6
+                                ? _habits[value.toInt()].name.substring(0, 6) + '...'
+                                : _habits[value.toInt()].name,
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        );
+                      }
+                      return const Text('');
+                    },
+                    reservedSize: 30,
+                  ),
                 ),
-                child: Center(
-                  child: Icon(
-                    habit.icon ?? Icons.star,
-                    color: habit.color ?? Theme.of(context).colorScheme.primary,
-                    size: 24,
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (double value, TitleMeta meta) {
+                      return Text(
+                        '${value.toInt()}%',
+                        style: TextStyle(fontSize: 10),
+                      );
+                    },
+                    reservedSize: 30,
+                  ),
+                ),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              gridData: FlGridData(
+                show: true,
+                drawHorizontalLine: true,
+                horizontalInterval: 20,
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: Colors.grey.withOpacity(0.2),
+                  strokeWidth: 1,
+                ),
+                drawVerticalLine: false,
+              ),
+              barGroups: List.generate(_habits.length, (index) {
+                final habit = _habits[index];
+                return BarChartGroupData(
+                  x: index,
+                  barRods: [
+                    BarChartRodData(
+                      toY: habit.successRate,
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 16,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        topRight: Radius.circular(4),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStreaksList() {
+    if (_habits.isEmpty) {
+      return SizedBox();
+    }
+    
+    // Sort habits by current streak
+    final sortedHabits = [..._habits]..sort((a, b) => b.currentStreak.compareTo(a.currentStreak));
+    
+    return Card(
+      elevation: 2, 
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.all(16),
+        itemCount: sortedHabits.length > 5 ? 5 : sortedHabits.length,
+        separatorBuilder: (_, __) => Divider(),
+        itemBuilder: (context, index) {
+          final habit = sortedHabits[index];
+          return Row(
+            children: [
+              Icon(
+                habit.icon ?? Icons.star,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  habit.name,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: habit.currentStreak > 0
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${habit.currentStreak} days',
+                  style: TextStyle(
+                    color: habit.currentStreak > 0 ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              SizedBox(width: 16),
-              
-              // Habit details
+            ],
+          );
+        },
+      ),
+    );
+  }
+  
+  Widget _buildRecentEntries() {
+    if (_habits.isEmpty) {
+      return SizedBox();
+    }
+    
+    // Collect all entries from all habits
+    List<MapEntry<Habit, HabitEntry>> allEntries = [];
+    
+    for (var habit in _habits) {
+      for (var entry in habit.entries) {
+        allEntries.add(MapEntry(habit, entry));
+      }
+    }
+    
+    // Sort by date (newest first)
+    allEntries.sort((a, b) => b.value.date.compareTo(a.value.date));
+    
+    // Take only the 5 most recent
+    final recentEntries = allEntries.take(5).toList();
+    
+    if (recentEntries.isEmpty) {
+      return Center(child: Text('No entries yet'));
+    }
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.all(16),
+        itemCount: recentEntries.length,
+        separatorBuilder: (_, __) => Divider(),
+        itemBuilder: (context, index) {
+          final habit = recentEntries[index].key;
+          final entry = recentEntries[index].value;
+          final isPositive = habit.isPositiveDay(entry);
+          
+          return Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isPositive 
+                      ? Colors.green.withOpacity(0.1) 
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isPositive ? Icons.check : Icons.close,
+                  color: isPositive ? Colors.green : Colors.red,
+                ),
+              ),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       habit.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        decoration: isCompleted ? TextDecoration.lineThrough : null,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          isCompleted ? Icons.check_circle : Icons.schedule,
-                          size: 14,
-                          color: isCompleted ? Colors.green : Colors.grey,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          isCompleted 
-                              ? 'Completed ${isToday ? "today" : "on this day"}' 
-                              : isToday 
-                                  ? 'Due today' 
-                                  : selectedDate.isAfter(today) 
-                                      ? 'Upcoming' 
-                                      : 'Missed',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isCompleted ? Colors.green : Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    Text(
+                      DateFormat('MMM d, yyyy').format(entry.date),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
               ),
-              
-              // Action button
-              if (isCompleted)
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.check, color: Colors.green),
-                )
-              else
-                ElevatedButton(
-                  onPressed: () => _showAddEntryForDate(habit, selectedDate),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: habit.color ?? Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: Size(0, 40),
-                  ),
-                  child: Text('Log'),
+              Text(
+                'Day ${entry.dayNumber}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  
-  void _editEntryForDate(Habit habit, HabitEntry entry, DateTime date) {
-    showDialog(
-      context: context,
-      builder: (context) => AddEntryDialog(
-        habit: habit,
-        dayNumber: entry.dayNumber,
-        selectedDate: date,
-        onSave: (newEntry) async {
-          // Remove the old entry and add the new one
-          habit.entries.remove(entry);
-          habit.entries.add(newEntry);
-          await StorageService.save(habit);
-          Navigator.of(context).pop();
-          setState(() {}); // Refresh the UI
-        },
-      ),
-    );
-  }
-  
-  void _showAddEntryForDate(Habit habit, DateTime date) {
-    // Calculate the day number based on existing entries
-    final nextDay = habit.getNextDayNumber();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AddEntryDialog(
-        habit: habit,
-        dayNumber: nextDay,
-        selectedDate: date,
-        onSave: (entry) async {
-          habit.entries.add(entry);
-          await StorageService.save(habit);
-          Navigator.of(context).pop();
-          setState(() {}); // Refresh the UI
-        },
-      ),
-    );
-  }
-
-  Widget _buildDashboardSummary() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatCard(
-                  icon: Icons.checklist,
-                  title: 'Total Habits',
-                  value: '${_activeHabits.length}',
-                  color: Colors.blue,
-                ),
-                _buildStatCard(
-                  icon: Icons.celebration,
-                  title: 'Success Rate',
-                  value: '${_overallSuccessRate.toStringAsFixed(1)}%',
-                  color: Colors.green,
-                ),
-                _buildStatCard(
-                  icon: Icons.local_fire_department,
-                  title: 'Best Streak',
-                  value: '$_bestCurrentStreak',
-                  color: Colors.orange,
-                ),
-              ],
-            ),
-            if (_bestCurrentStreak > 0 && _bestStreakHabit.isNotEmpty) ...[
-              SizedBox(height: 12),
-              Divider(),
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.emoji_events, color: Colors.amber),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Current best streak: $_bestCurrentStreak days with "$_bestStreakHabit"',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      width: 100,
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color),
-          ),
-          SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          );
+        },
       ),
     );
   }

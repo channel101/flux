@@ -304,180 +304,39 @@ class Habit {
     int streak = 0;
     if (entries.isEmpty) return 0;
     
-    // Get entries sorted by date (newest first)
     var sortedEntries = [...entries]..sort((a, b) => b.date.compareTo(a.date));
-    
-    // Get today's date without time
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
     
     // For frequency-based habits, we need to check expected days
     if (frequency != HabitFrequency.Daily) {
-      return _calculateFrequencyStreak(sortedEntries, today);
+      return _calculateFrequencyStreak(sortedEntries);
     }
     
     // Daily habit streak calculation
-    DateTime? lastDate;
-    
     for (var entry in sortedEntries) {
-      // Convert entry date to local date without time
-      final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
-      
-      if (lastDate == null) {
-        // First iteration - check if the most recent entry is from today or yesterday
-        if (entryDate.isAfter(today)) {
-          // Entry is from the future (timezone issue), treat as today
-          lastDate = today;
-        } else {
-          lastDate = entryDate;
-        }
-        
-        // Check if the most recent entry is from today or before
-        final difference = today.difference(entryDate).inDays;
-        
-        // If the most recent entry is not from today or yesterday, streak is broken
-        if (difference > 1) {
-          return isPositiveDay(entry) ? 1 : 0;
-        }
-        
-        // Count this entry if it's positive
-        if (isPositiveDay(entry)) {
-          streak++;
-        } else {
-          // Negative entry breaks the streak
-          return 0;
-        }
+      if (isPositiveDay(entry)) {
+        streak++;
       } else {
-        // Check for consecutive days
-        final difference = lastDate.difference(entryDate).inDays;
-        
-        if (difference == 1) {
-          // Consecutive day
-          if (isPositiveDay(entry)) {
-            streak++;
-            lastDate = entryDate;
-          } else {
-            // Negative entry breaks the streak
-            break;
-          }
-        } else if (difference == 0) {
-          // Same day, multiple entries - just continue
-          continue;
-        } else {
-          // Gap in the streak
-          break;
-        }
+        break;
       }
     }
     
     return streak;
   }
   
-  int _calculateFrequencyStreak(List<HabitEntry> sortedEntries, DateTime today) {
+  int _calculateFrequencyStreak(List<HabitEntry> sortedEntries) {
     int streak = 0;
-    DateTime? lastDate;
+    DateTime currentDate = DateTime.now();
     
-    // Group entries by date
-    final entriesByDate = <DateTime, List<HabitEntry>>{};
     for (var entry in sortedEntries) {
-      final date = DateTime(entry.date.year, entry.date.month, entry.date.day);
-      entriesByDate.putIfAbsent(date, () => []).add(entry);
-    }
-    
-    // For each date, check if any entry was positive
-    final datesSorted = entriesByDate.keys.toList()..sort((a, b) => b.compareTo(a));
-    
-    for (var date in datesSorted) {
-      final entriesForDate = entriesByDate[date]!;
-      final hasPositive = entriesForDate.any((e) => isPositiveDay(e));
-      
-      if (lastDate == null) {
-        // First iteration
-        lastDate = date;
-        if (hasPositive) {
-          streak++;
-        } else {
-          return 0; // Most recent day was negative
-        }
+      if (isPositiveDay(entry)) {
+        streak++;
+        currentDate = entry.date;
       } else {
-        // Check if this date should be counted based on frequency
-        if (_shouldCountDateForFrequency(date, lastDate)) {
-          if (hasPositive) {
-            streak++;
-            lastDate = date;
-          } else {
-            break; // Streak broken
-          }
-        } else {
-          // Skip dates that don't count for the frequency
-          lastDate = date;
-        }
+        break;
       }
     }
     
     return streak;
-  }
-  
-  bool _shouldCountDateForFrequency(DateTime date, DateTime lastDate) {
-    switch (frequency) {
-      case HabitFrequency.Daily:
-        return lastDate.difference(date).inDays == 1;
-      case HabitFrequency.Weekdays:
-        // Only count weekdays (Monday = 1, Friday = 5)
-        if (date.weekday > 5) return false;
-        
-        // Find the previous weekday
-        var expectedPrevDay = lastDate;
-        while (expectedPrevDay.weekday > 5) {
-          expectedPrevDay = expectedPrevDay.subtract(Duration(days: 1));
-        }
-        
-        return expectedPrevDay.difference(date).inDays == 1;
-      case HabitFrequency.Weekends:
-        // Only count weekends (Saturday = 6, Sunday = 7)
-        if (date.weekday < 6) return false;
-        
-        // Find the previous weekend day
-        var expectedPrevDay = lastDate;
-        while (expectedPrevDay.weekday < 6) {
-          expectedPrevDay = expectedPrevDay.subtract(Duration(days: 1));
-        }
-        
-        return expectedPrevDay.difference(date).inDays == 1 || 
-               (lastDate.weekday == 6 && date.weekday == 7);
-      case HabitFrequency.CustomDays:
-        // Only count custom days
-        final dayIndex = date.weekday % 7; // Convert to 0=Sunday format
-        if (!customDays.contains(dayIndex)) return false;
-        
-        // Find the previous custom day
-        var daysBack = 1;
-        var foundPrevDay = false;
-        while (daysBack < 7 && !foundPrevDay) {
-          final prevDate = lastDate.subtract(Duration(days: daysBack));
-          final prevDayIndex = prevDate.weekday % 7;
-          if (customDays.contains(prevDayIndex)) {
-            foundPrevDay = true;
-            return prevDate.difference(date).inDays == 0;
-          }
-          daysBack++;
-        }
-        return false;
-      case HabitFrequency.XTimesPerWeek:
-        // Check if in the same week
-        final lastWeekStart = _getStartOfWeek(lastDate);
-        final dateWeekStart = _getStartOfWeek(date);
-        return lastWeekStart.isAtSameMomentAs(dateWeekStart);
-      case HabitFrequency.XTimesPerMonth:
-        // Check if in the same month
-        return lastDate.year == date.year && lastDate.month == date.month;
-    }
-  }
-  
-  DateTime _getStartOfWeek(DateTime date) {
-    // Assuming weeks start on Sunday (0)
-    final daysSinceStartOfWeek = date.weekday % 7;
-    return date.subtract(Duration(days: daysSinceStartOfWeek));
   }
   
   int get bestStreak {

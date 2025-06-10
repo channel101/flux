@@ -12,68 +12,30 @@ class CalendarView extends StatefulWidget {
   final Habit habit;
   final Function() onRefresh;
   
-  // Static reference to the current instance for access from widget
-  static CalendarView? instance;
-  
-  const CalendarView({
-    Key? key,
-    required this.habit,
-    required this.onRefresh,
-  }) : super(key: key);
-  
-  // Public method to scroll to selected date
-  void scrollToSelectedDate() {
-    // Find the current state and call its method
-    final state = _CalendarViewState.instance;
-    if (state != null) {
-      state.scrollToSelectedDate();
-    }
-  }
-  
-  // Public method to set a specific date and scroll to it
-  void setSelectedDate(DateTime date) {
-    final state = _CalendarViewState.instance;
-    if (state != null) {
-      state.setSelectedDate(date);
-    }
-  }
+  const CalendarView({required this.habit, required this.onRefresh});
   
   @override
   _CalendarViewState createState() => _CalendarViewState();
 }
 
 class _CalendarViewState extends State<CalendarView> {
-  // Static reference to the current instance for access from widget
-  static _CalendarViewState? instance;
-  
   late final ValueNotifier<List<HabitEntry>> _selectedEvents;
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<HabitEntry>> _events = {};
-  final ScrollController _scrollController = ScrollController();
-  
+
   @override
   void initState() {
     super.initState();
-    instance = this;
     _selectedDay = DateTime.now();
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
     _processHabitEntries();
-    
-    // Fix: Add a delay before scrolling to ensure calendar is built
-    Future.delayed(Duration(milliseconds: 200), () {
-      scrollToSelectedDate();
-    });
   }
 
   @override
   void dispose() {
-    if (instance == this) {
-      instance = null;
-    }
     _selectedEvents.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -95,9 +57,7 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   List<HabitEntry> _getEventsForDay(DateTime day) {
-    // Normalize the date to avoid time issues
-    final normalizedDay = DateTime(day.year, day.month, day.day);
-    return _events[normalizedDay] ?? [];
+    return _events[day] ?? [];
   }
 
   Color _getColorForDay(DateTime day) {
@@ -155,7 +115,7 @@ class _CalendarViewState extends State<CalendarView> {
         return false;
     }
   }
-  
+
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     if (!isSameDay(_selectedDay, selectedDay)) {
       setState(() {
@@ -180,7 +140,6 @@ class _CalendarViewState extends State<CalendarView> {
       builder: (context) => AddEntryDialog(
         habit: widget.habit,
         dayNumber: dayNumber,
-        selectedDate: day,
         onSave: (entry) async {
           // Set the correct date for the entry
           entry.date = day;
@@ -194,55 +153,9 @@ class _CalendarViewState extends State<CalendarView> {
     );
   }
 
-  // Method to scroll to selected date
-  void scrollToSelectedDate() {
-    if (_selectedDay != null) {
-      setState(() {
-        _focusedDay = _selectedDay!;
-        _calendarFormat = CalendarFormat.month; // Ensure month view to see the date
-      });
-    }
-  }
-
-  // Method to set a specific date and scroll to it
-  void setSelectedDate(DateTime date) {
-    setState(() {
-      _selectedDay = date;
-      _focusedDay = date;
-      _selectedEvents.value = _getEventsForDay(date);
-    });
-    
-    // Add a small delay to ensure the state is updated
-    Future.delayed(Duration(milliseconds: 100), scrollToSelectedDate);
-  }
-
-  void _editEntry(HabitEntry entry) {
-    // Calculate day number based on first entry date
-    int dayNumber = entry.dayNumber;
-    
-    showDialog(
-      context: context,
-      builder: (context) => AddEntryDialog(
-        habit: widget.habit,
-        dayNumber: dayNumber,
-        selectedDate: entry.date,
-        onSave: (newEntry) async {
-          // Remove existing entry and add the updated one
-          widget.habit.entries.remove(entry);
-          widget.habit.entries.add(newEntry);
-          await StorageService.save(widget.habit);
-          Navigator.of(context).pop();
-          _processHabitEntries();
-          widget.onRefresh();
-        },
-      ),
-    );
-  }
-  
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      controller: _scrollController,
       child: Column(
         children: [
           _buildLegend(),
@@ -256,21 +169,19 @@ class _CalendarViewState extends State<CalendarView> {
                 firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: _focusedDay,
-                selectedDayPredicate: (day) => _selectedDay != null && isSameDay(_selectedDay!, day),
                 calendarFormat: _calendarFormat,
                 eventLoader: _getEventsForDay,
-                startingDayOfWeek: StartingDayOfWeek.sunday,
                 availableCalendarFormats: const {
                   CalendarFormat.month: 'Month',
                   CalendarFormat.week: 'Week',
                 },
-                headerVisible: false, // Hide the default header since we have our own
                 calendarStyle: CalendarStyle(
                   outsideDaysVisible: false,
-                  weekendTextStyle: TextStyle(color: Colors.red[600]),
+                  weekendTextStyle: TextStyle(color: Colors.blue[600]),
+                  holidayTextStyle: TextStyle(color: Colors.red[600]),
                   defaultTextStyle: TextStyle(fontWeight: FontWeight.w500),
                   todayDecoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                     shape: BoxShape.circle,
                   ),
                   selectedDecoration: BoxDecoration(
@@ -284,10 +195,10 @@ class _CalendarViewState extends State<CalendarView> {
                 ),
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
-                    return _buildDayCell(day, false, _selectedDay != null && isSameDay(_selectedDay!, day));
+                    return _buildDayCell(day, false, false);
                   },
                   todayBuilder: (context, day, focusedDay) {
-                    return _buildDayCell(day, true, _selectedDay != null && isSameDay(_selectedDay!, day));
+                    return _buildDayCell(day, true, false);
                   },
                   selectedBuilder: (context, day, focusedDay) {
                     return _buildDayCell(day, false, true);
@@ -302,9 +213,7 @@ class _CalendarViewState extends State<CalendarView> {
                   }
                 },
                 onPageChanged: (focusedDay) {
-                  setState(() {
-                    _focusedDay = focusedDay;
-                  });
+                  _focusedDay = focusedDay;
                 },
               ),
             ),
@@ -339,7 +248,7 @@ class _CalendarViewState extends State<CalendarView> {
               '${day.day}',
               style: TextStyle(
                 fontWeight: isToday || isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.white : null,
+                color: isToday || isSelected ? Colors.white : Colors.black87,
                 fontSize: 14,
               ),
             ),
@@ -407,153 +316,144 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   Widget _buildSelectedDayInfo() {
-    return ValueListenableBuilder<List<HabitEntry>>(
-      valueListenable: _selectedEvents,
-      builder: (context, entries, _) {
-        if (entries.isEmpty) {
-          return Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Icon(Icons.event_note, size: 48, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    _selectedDay == null ? 'Select a day' : 'No entries for ${DateFormat.yMMMd().format(_selectedDay!)}',
+    if (_selectedDay == null) return SizedBox();
+    
+    final entries = _getEventsForDay(_selectedDay!);
+    final dateFormatter = DateFormat('EEEE, MMM d, yyyy');
+    
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    dateFormatter.format(_selectedDay!),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 8),
-                  if (_selectedDay != null) ...[
-                    Text(
-                      'Tap the button below to add an entry',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => _showAddEntryForDay(_selectedDay!),
-                      icon: Icon(Icons.add),
-                      label: Text('Add Entry'),
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          );
-        }
-
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.event_note, color: Theme.of(context).colorScheme.primary),
-                    SizedBox(width: 8),
-                    Text(
-                      'Entries for ${DateFormat.yMMMd().format(_selectedDay!)}',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Spacer(),
-                    IconButton(
-                      icon: Icon(Icons.add_circle_outline),
-                      tooltip: 'Add Entry',
-                      onPressed: () => _showAddEntryForDay(_selectedDay!),
-                    ),
-                  ],
                 ),
-                Divider(),
-                ...entries.map((entry) => _buildEntryItem(entry)).toList(),
+                if (entries.isEmpty && _selectedDay!.isBefore(DateTime.now().add(Duration(days: 1))))
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddEntryForDay(_selectedDay!),
+                    icon: Icon(Icons.add, size: 16),
+                    label: Text('Add Entry'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
               ],
             ),
-          ),
-        );
-      },
+            SizedBox(height: 12),
+            if (entries.isEmpty)
+              Text(
+                'No entries for this day',
+                style: TextStyle(color: Colors.grey[600]),
+              )
+            else
+              ...entries.map((entry) => _buildEntryInfo(entry)).toList(),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildEntryItem(HabitEntry entry) {
+  Widget _buildEntryInfo(HabitEntry entry) {
     final isPositive = widget.habit.isPositiveDay(entry);
-    final statusColor = entry.isSkipped ? Colors.orange : (isPositive ? Colors.green : Colors.red);
     
-    String statusText;
-    if (entry.isSkipped) {
-      statusText = 'Skipped';
-    } else if (widget.habit.type == HabitType.DoneBased) {
-      statusText = isPositive ? 'Completed' : 'Not Completed';
-    } else {
-      if (widget.habit.targetValue != null) {
-        final value = entry.value ?? entry.count.toDouble();
-        final target = widget.habit.targetValue!;
-        final percentage = (value / target * 100).toStringAsFixed(0);
-        statusText = '${entry.value ?? entry.count} ${widget.habit.getUnitDisplayName()} ($percentage%)';
-      } else {
-        statusText = '${entry.value ?? entry.count} ${widget.habit.getUnitDisplayName()}';
-      }
-    }
-    
-    return InkWell(
-      onTap: () => _editEntry(entry),
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: statusColor.withOpacity(0.3)),
+    return Container(
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: entry.isSkipped 
+            ? Colors.orange.withOpacity(0.1)
+            : isPositive 
+                ? Colors.green.withOpacity(0.1)
+                : Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: entry.isSkipped 
+              ? Colors.orange.withOpacity(0.3)
+              : isPositive 
+                  ? Colors.green.withOpacity(0.3)
+                  : Colors.red.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                entry.isSkipped 
+                    ? Icons.skip_next
+                    : isPositive 
+                        ? Icons.check_circle
+                        : Icons.cancel,
+                color: entry.isSkipped 
+                    ? Colors.orange
+                    : isPositive 
+                        ? Colors.green
+                        : Colors.red,
+                size: 18,
               ),
-              child: Center(
-                child: Icon(
-                  entry.isSkipped ? Icons.skip_next :
-                  (isPositive ? Icons.check_circle : Icons.cancel),
-                  color: statusColor,
-                  size: 24,
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  entry.isSkipped 
+                      ? 'Skipped Day'
+                      : isPositive 
+                          ? 'Success'
+                          : 'Failed',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: entry.isSkipped 
+                        ? Colors.orange[800]
+                        : isPositive 
+                            ? Colors.green[800]
+                            : Colors.red[800],
+                  ),
                 ),
               ),
-            ),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    statusText,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
-                  ),
-                  if (entry.notes != null && entry.notes!.isNotEmpty)
-                    Text(
-                      entry.notes!,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
+              Text(
+                'Day ${entry.dayNumber}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
               ),
+            ],
+          ),
+          if (entry.value != null) ...[
+            SizedBox(height: 4),
+            Text(
+              '${entry.value} ${entry.unit ?? widget.habit.getUnitDisplayName()}',
+              style: TextStyle(fontSize: 14),
             ),
-            IconButton(
-              icon: Icon(Icons.edit, size: 20),
-              color: Colors.grey[600],
-              onPressed: () => _editEntry(entry),
+          ] else if (entry.count > 0) ...[
+            SizedBox(height: 4),
+            Text(
+              'Count: ${entry.count}',
+              style: TextStyle(fontSize: 14),
             ),
           ],
-        ),
+          if (entry.notes != null && entry.notes!.isNotEmpty) ...[
+            SizedBox(height: 4),
+            Text(
+              entry.notes!,
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: Colors.grey[700],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
       ),
     );
   }

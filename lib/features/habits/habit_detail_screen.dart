@@ -25,19 +25,11 @@ class HabitDetailScreen extends StatefulWidget {
 
 class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final GlobalKey<State<CalendarView>> _calendarViewKey = GlobalKey<State<CalendarView>>();
   
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this); // Increased to 5 tabs
-    
-    // Listen for tab changes to handle scrolling when calendar tab is selected
-    _tabController.addListener(() {
-      if (_tabController.index == 1) { // Calendar tab
-        _scrollToActiveDay();
-      }
-    });
   }
   
   @override
@@ -50,19 +42,14 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
     setState(() {});
   }
   
-  void _showAddEntryDialog({DateTime? selectedDate, HabitEntry? existingEntry}) {
+  void _showAddEntryDialog() {
     final nextDay = widget.habit.getNextDayNumber();
     showDialog(
       context: context,
       builder: (context) => AddEntryDialog(
         habit: widget.habit,
-        dayNumber: existingEntry?.dayNumber ?? nextDay,
-        selectedDate: selectedDate,
+        dayNumber: nextDay,
         onSave: (entry) async {
-          if (existingEntry != null) {
-            // Remove existing entry and add the updated one
-            widget.habit.entries.remove(existingEntry);
-          }
           widget.habit.entries.add(entry);
           await StorageService.save(widget.habit);
           Navigator.of(context).pop();
@@ -70,32 +57,6 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
         },
       ),
     );
-  }
-  
-  void _editEntry(HabitEntry entry) {
-    _showAddEntryDialog(selectedDate: entry.date, existingEntry: entry);
-  }
-  
-  void _scrollToActiveDay() {
-    // First ensure we're on the right tab
-    if (_tabController.index != 1) {
-      _tabController.animateTo(1);
-      // We need to wait for the tab to change before scrolling
-      Future.delayed(Duration(milliseconds: 300), () {
-        _scrollCalendarToSelectedDate();
-      });
-    } else {
-      _scrollCalendarToSelectedDate();
-    }
-  }
-  
-  void _scrollCalendarToSelectedDate() {
-    // Find the CalendarView widget using the key
-    final calendarWidget = _calendarViewKey.currentWidget as CalendarView?;
-    if (calendarWidget != null) {
-      // Call the public method on the widget
-      calendarWidget.scrollToSelectedDate();
-    }
   }
   
   void _showToggleDisplayModeDialog() {
@@ -299,523 +260,79 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    final habitColor = widget.habit.color ?? Theme.of(context).colorScheme.primary;
-    
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.habit.formattedName),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: [
+            Tab(icon: Icon(Icons.info), text: 'Overview'),
+            Tab(icon: Icon(Icons.calendar_month), text: 'Calendar'),
+            Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
+            Tab(icon: Icon(Icons.history), text: 'Entries'),
+            Tab(icon: Icon(Icons.assessment), text: 'Reports'),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.calendar_today),
-            tooltip: 'Go to Today',
-            onPressed: () {
-              // Navigate to today's date in the calendar
-              _navigateToDate(DateTime.now());
-            },
+            icon: Icon(Icons.share),
+            onPressed: _showExportDialog,
           ),
           IconButton(
-            icon: Icon(Icons.add),
-            tooltip: 'Add Entry',
-            onPressed: _showAddEntryDialog,
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'edit':
-                  // Edit habit functionality
-                  break;
-                case 'export':
-                  _showExportDialog();
-                  break;
-                case 'display_mode':
-                  _showToggleDisplayModeDialog();
-                  break;
-                case 'manage':
-                  _showDeleteHabitDialog();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit, size: 18),
-                    SizedBox(width: 8),
-                    Text('Edit Habit'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'export',
-                child: Row(
-                  children: [
-                    Icon(Icons.ios_share, size: 18),
-                    SizedBox(width: 8),
-                    Text('Export Data'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'display_mode',
-                child: Row(
-                  children: [
-                    Icon(Icons.bar_chart, size: 18),
-                    SizedBox(width: 8),
-                    Text('Change Display Mode'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'manage',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings, size: 18),
-                    SizedBox(width: 8),
-                    Text('Manage Habit'),
-                  ],
-                ),
-              ),
-            ],
+            icon: Icon(Icons.more_vert),
+            onPressed: _showDeleteHabitDialog,
           ),
         ],
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Container(
-            height: 48,
-            width: double.infinity,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              labelColor: habitColor,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: habitColor,
-              indicatorWeight: 3,
-              labelStyle: TextStyle(fontWeight: FontWeight.bold),
-              tabs: [
-                Tab(text: 'Overview'),
-                Tab(text: 'Calendar'),
-                Tab(text: 'Dashboard'),
-                Tab(text: 'History'),
-                Tab(text: 'Notes'),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOverviewTab(),
-                _buildCalendarTab(),
-                AnalyticsDashboard(habits: [widget.habit], showBackButton: false),
-                _buildEntriesTab(),
-                _buildReportsTab(),
-              ],
-            ),
-          ),
+          _buildOverviewTab(),
+          _buildCalendarTab(),
+          _buildAnalyticsTab(),
+          _buildEntriesTab(),
+          _buildReportsTab(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddEntryDialog,
         child: Icon(Icons.add),
-        backgroundColor: habitColor,
+        tooltip: 'Add Entry',
       ),
     );
   }
 
-  void _navigateToDate(DateTime date) {
-    // First switch to the calendar tab
-    _tabController.animateTo(1);
-    
-    // Then set the selected date in the calendar
-    // We need to wait for the tab to change before scrolling
-    Future.delayed(Duration(milliseconds: 300), () {
-      final calendarWidget = _calendarViewKey.currentWidget as CalendarView?;
-      if (calendarWidget != null) {
-        // Set the selected date in the calendar
-        calendarWidget.setSelectedDate(date);
-      }
-    });
-  }
-
   Widget _buildOverviewTab() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    final habit = widget.habit;
-    final habitColor = habit.color ?? Theme.of(context).colorScheme.primary;
-    
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Hero card with key stats
-          Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [
-                    habitColor.withOpacity(0.8),
-                    habitColor,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          habit.icon ?? Icons.star,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              habit.formattedName,
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              _getHabitTypeText(habit.type),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    alignment: WrapAlignment.spaceBetween,
-                    children: [
-                      _buildStatCounter(
-                        'Current Streak',
-                        '${habit.currentStreak}',
-                        'days',
-                        Icons.local_fire_department,
-                        Colors.white,
-                      ),
-                      _buildStatCounter(
-                        'Entries',
-                        '${habit.entries.length}',
-                        'total',
-                        Icons.event_note,
-                        Colors.white,
-                      ),
-                      _buildStatCounter(
-                        'Success Rate',
-                        '${habit.successRate.toStringAsFixed(1)}',
-                        '%',
-                        Icons.trending_up,
-                        Colors.white,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 20),
-          
-          // Habit details section
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline, color: habitColor),
-                      SizedBox(width: 8),
-                      Text(
-                        'Habit Details',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Divider(height: 24),
-                  
-                  // Responsive grid layout for habit details
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: [
-                      _buildDetailItem('Frequency', _getFrequencyText(habit), habitColor),
-                      if (habit.category != null)
-                        _buildDetailItem('Category', habit.category!, habitColor),
-                      if (habit.targetValue != null)
-                        _buildDetailItem('Target', '${habit.targetValue} ${habit.getUnitDisplayName()}', habitColor),
-                      _buildDetailItem('Started', '${habit.entries.isNotEmpty ? DateFormat('MMM d, yyyy').format(habit.entries.map((e) => e.date).reduce((a, b) => a.isBefore(b) ? a : b)) : "No entries"}', habitColor),
-                      if (habit.isPaused)
-                        _buildDetailItem('Status', 'Paused', Colors.orange),
-                      if (habit.type == HabitType.FailBased && habit.hasEntries)
-                        _buildDetailItem('Time Clean', habit.getTimeSinceLastFailure(), Colors.green),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 20),
-          
-          // Last entries section
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.history, color: habitColor),
-                      SizedBox(width: 8),
-                      Text(
-                        'Recent Entries',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Spacer(),
-                      TextButton(
-                        onPressed: () => _tabController.animateTo(3), // Navigate to History tab
-                        child: Text('View All'),
-                      ),
-                    ],
-                  ),
-                  Divider(height: 24),
-                  habit.entries.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Text(
-                              'No entries yet. Tap the + button to add one!',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                        )
-                      : Column(
-                          children: habit.entries
-                              .take(3) // Show only the 3 most recent entries
-                              .map((entry) => _buildRecentEntryItem(entry))
-                              .toList(),
-                        ),
-                ],
-              ),
-            ),
-          ),
+          _buildHabitInfoCard(),
+          SizedBox(height: 16),
+          _buildStatsGrid(),
+          SizedBox(height: 16),
+          if (widget.habit.type == HabitType.FailBased) _buildTimeSinceLastFailure(),
         ],
       ),
     );
   }
-  
-  Widget _buildStatCounter(String label, String value, String unit, IconData icon, Color color) {
-    return Container(
-      width: 100,
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            '$label ($unit)',
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withOpacity(0.9),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildDetailItem(String label, String value, Color color) {
-    return Container(
-      width: 160,
-      margin: EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildRecentEntryItem(HabitEntry entry) {
-    final isPositive = widget.habit.isPositiveDay(entry);
-    final statusColor = entry.isSkipped ? Colors.orange : (isPositive ? Colors.green : Colors.red);
-    final statusIcon = entry.isSkipped ? Icons.skip_next : (isPositive ? Icons.check_circle : Icons.cancel);
-    
-    return InkWell(
-      onTap: () => _editEntry(entry),
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(statusIcon, color: statusColor),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    DateFormat('MMM d, yyyy').format(entry.date),
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  if (entry.notes != null && entry.notes!.isNotEmpty)
-                    Text(
-                      entry.notes!,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                entry.isSkipped
-                    ? 'Skipped'
-                    : widget.habit.type == HabitType.DoneBased
-                        ? (isPositive ? 'Done' : 'Not Done')
-                        : (entry.value != null
-                            ? '${entry.value} ${widget.habit.getUnitDisplayName()}'
-                            : '${entry.count} ${widget.habit.getUnitDisplayName()}'),
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
+
   Widget _buildCalendarTab() {
-    final habit = widget.habit;
-    final now = DateTime.now();
-    final currentMonth = DateTime(now.year, now.month, 1);
-    
     return Padding(
       padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.grey),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Tap on a day to view or add entries. Green indicates success, red indicates failure, and orange indicates skipped days.',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 16),
-          Expanded(
-            child: CalendarView(
-              habit: habit,
-              onRefresh: _refreshHabit,
-              key: _calendarViewKey,
-            ),
-          ),
-        ],
+      child: CalendarView(
+        habit: widget.habit,
+        onRefresh: _refreshHabit,
       ),
     );
   }
-  
+
+  Widget _buildAnalyticsTab() {
+    return AnalyticsDashboard(habits: [widget.habit], showBackButton: false,);
+  }
+
   Widget _buildEntriesTab() {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -835,7 +352,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
                   SizedBox(height: 16),
                   Text('No entries yet', style: TextStyle(color: Colors.grey)),
                   SizedBox(height: 8),
-                  Text('Add entries from the home screen', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('Tap the + button to add your first entry', style: TextStyle(color: Colors.grey, fontSize: 12)),
                 ],
               ),
             )
@@ -1026,6 +543,172 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
     );
   }
 
+  Widget _buildHabitInfoCard() {
+    final habit = widget.habit;
+    final entries = habit.entries;
+    
+    final days = entries.length;
+    final positiveDays = habit.positiveCount;
+    final negativeDays = days - positiveDays;
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Habit Information',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            SizedBox(height: 16),
+            _buildInfoRow('Type', _getHabitTypeText(habit.type)),
+            _buildInfoRow('Frequency', _getFrequencyText(habit)),
+            if (habit.category != null)
+              _buildInfoRow('Category', habit.category!),
+            if (habit.targetValue != null)
+              _buildInfoRow('Target', '${habit.targetValue} ${habit.getUnitDisplayName()}'),
+            if (habit.isPaused)
+              _buildInfoRow('Status', 'Paused', color: Colors.orange),
+            if (habit.type == HabitType.FailBased && habit.hasEntries)
+              _buildInfoRow('Time Clean', habit.getTimeSinceLastFailure(), color: Colors.green),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStatsGrid() {
+    final habit = widget.habit;
+    final entries = habit.entries;
+    
+    final days = entries.length;
+    final totalCount = entries.fold(0, (sum, e) => sum + e.count);
+    final positiveDays = habit.positiveCount;
+    final negativeDays = days - positiveDays;
+    final posRate = days > 0 ? (positiveDays / days) * 100 : 0;
+    final negRate = days > 0 ? (negativeDays / days) * 100 : 0;
+    
+    final avgPerDay = days > 0 ? totalCount / days : 0;
+    final avgPositive = positiveDays > 0
+        ? entries
+            .where((e) => habit.isPositiveDay(e))
+            .fold(0, (sum, e) => sum + e.count) / positiveDays
+        : 0;
+    
+    final maxCount = entries.isEmpty ? 0 : entries.map((e) => e.count).reduce((a, b) => a > b ? a : b);
+    final maxDays = entries.where((e) => e.count == maxCount).map((e) => e.dayNumber).toList();
+    
+    return Column(
+      children: [
+        _buildStatItem('Total Days Tracked', days.toString()),
+        _buildStatItem('Total Count Sum', '$totalCount'),
+        _buildStatItem('Average Count per Day', '${avgPerDay.toStringAsFixed(2)}'),
+        if (maxCount > 0)
+          _buildStatItem('Highest Count ($maxCount) on Day(s)', maxDays.join(', ')),
+      ],
+    );
+  }
+  
+  Widget _buildTimeSinceLastFailure() {
+    final habit = widget.habit;
+    final timeSinceLastFailure = habit.getTimeSinceLastFailure();
+    
+    return _buildInfoRow('Time Since Last Failure', timeSinceLastFailure, color: Colors.green);
+  }
+  
+  Widget _buildInfoRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+  
+  String _getHabitTypeText(HabitType type) {
+    switch (type) {
+      case HabitType.FailBased:
+        return 'Avoid (Failure-based)';
+      case HabitType.SuccessBased:
+        return 'Achieve (Success-based)';
+      case HabitType.DoneBased:
+        return 'Check (Done-based)';
+    }
+  }
+  
+  String _getFrequencyText(Habit habit) {
+    switch (habit.frequency) {
+      case HabitFrequency.Daily:
+        return 'Daily';
+      case HabitFrequency.Weekdays:
+        return 'Weekdays (Mon-Fri)';
+      case HabitFrequency.Weekends:
+        return 'Weekends (Sat-Sun)';
+      case HabitFrequency.CustomDays:
+        final dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        final selectedDays = habit.customDays.map((i) => dayNames[i]).join(', ');
+        return 'Custom Days ($selectedDays)';
+      case HabitFrequency.XTimesPerWeek:
+        return '${habit.targetFrequency ?? 'X'} times per week';
+      case HabitFrequency.XTimesPerMonth:
+        return '${habit.targetFrequency ?? 'X'} times per month';
+    }
+  }
+
   List<Widget> _buildEntriesList() {
     final entries = widget.habit.entries;
     
@@ -1149,35 +832,5 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
     }
     
     return description;
-  }
-
-  String _getHabitTypeText(HabitType type) {
-    switch (type) {
-      case HabitType.FailBased:
-        return 'Avoid (Failure-based)';
-      case HabitType.SuccessBased:
-        return 'Achieve (Success-based)';
-      case HabitType.DoneBased:
-        return 'Check (Done-based)';
-    }
-  }
-  
-  String _getFrequencyText(Habit habit) {
-    switch (habit.frequency) {
-      case HabitFrequency.Daily:
-        return 'Daily';
-      case HabitFrequency.Weekdays:
-        return 'Weekdays (Mon-Fri)';
-      case HabitFrequency.Weekends:
-        return 'Weekends (Sat-Sun)';
-      case HabitFrequency.CustomDays:
-        final dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        final selectedDays = habit.customDays.map((i) => dayNames[i]).join(', ');
-        return 'Custom Days ($selectedDays)';
-      case HabitFrequency.XTimesPerWeek:
-        return '${habit.targetFrequency ?? 'X'} times per week';
-      case HabitFrequency.XTimesPerMonth:
-        return '${habit.targetFrequency ?? 'X'} times per month';
-    }
   }
 }
