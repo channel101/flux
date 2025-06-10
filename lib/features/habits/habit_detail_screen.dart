@@ -44,17 +44,19 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
   
   void _showAddEntryDialog() {
     final nextDay = widget.habit.getNextDayNumber();
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AddEntryDialog(
-        habit: widget.habit,
-        dayNumber: nextDay,
-        onSave: (entry) async {
-          widget.habit.entries.add(entry);
-          await StorageService.save(widget.habit);
-          Navigator.of(context).pop();
-          _refreshHabit();
-        },
+      builder: (context) => Container(
+        child: AddEntryDialog(
+          habit: widget.habit,
+          dayNumber: nextDay,
+          onSave: (entry) async {
+            widget.habit.entries.add(entry);
+            await StorageService.save(widget.habit);
+            Navigator.of(context).pop();
+            _refreshHabit();
+          },
+        ),
       ),
     );
   }
@@ -309,28 +311,454 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildStreakCard(),
+          SizedBox(height: 16),
           _buildHabitInfoCard(),
           SizedBox(height: 16),
           _buildStatsGrid(),
           SizedBox(height: 16),
           if (widget.habit.type == HabitType.FailBased) _buildTimeSinceLastFailure(),
+          SizedBox(height: 16),
+          _buildAchievementsSection(),
         ],
       ),
     );
   }
 
+  // Calendar tab is commented out as requested
   Widget _buildCalendarTab() {
-    return Padding(
-      padding: EdgeInsets.all(16),
-      child: CalendarView(
-        habit: widget.habit,
-        onRefresh: _refreshHabit,
+    // Commented out as requested
+    // Original implementation:
+    // return Padding(
+    //   padding: EdgeInsets.all(16),
+    //   child: CalendarView(
+    //     habit: widget.habit,
+    //     onRefresh: _refreshHabit,
+    //   ),
+    // );
+    
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.calendar_month, size: 64, color: Colors.grey.withOpacity(0.5)),
+          SizedBox(height: 16),
+          Text(
+            'Calendar view is currently disabled',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildAnalyticsTab() {
-    return AnalyticsDashboard(habits: [widget.habit], showBackButton: false,);
+    // Integrated analytics directly instead of using AnalyticsDashboard widget
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSuccessRateChart(),
+          SizedBox(height: 24),
+          _buildStreakTrendChart(),
+          SizedBox(height: 24),
+          _buildPerformanceInsights(),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSuccessRateChart() {
+    final habit = widget.habit;
+    if (habit.entries.isEmpty) {
+      return _buildEmptyChartCard('Success Rate', 'Add entries to see your success rate chart');
+    }
+    
+    // Group entries by week
+    final now = DateTime.now();
+    final groupedEntries = <DateTime, List<HabitEntry>>{};
+    
+    // Get entries from the last 8 weeks
+    for (var i = 0; i < 8; i++) {
+      final weekStart = now.subtract(Duration(days: 7 * i + now.weekday - 1));
+      final key = DateTime(weekStart.year, weekStart.month, weekStart.day);
+      groupedEntries[key] = [];
+    }
+    
+    // Fill with actual entries
+    for (var entry in habit.entries) {
+      final entryDate = entry.date;
+      final weekStart = entryDate.subtract(Duration(days: entryDate.weekday - 1));
+      final key = DateTime(weekStart.year, weekStart.month, weekStart.day);
+      
+      if (groupedEntries.containsKey(key)) {
+        groupedEntries[key]!.add(entry);
+      }
+    }
+    
+    // Calculate success rate for each week
+    final chartData = <DateTime, double>{};
+    groupedEntries.forEach((date, entries) {
+      if (entries.isNotEmpty) {
+        final successCount = entries.where((e) => habit.isPositiveDay(e)).length;
+        final rate = (successCount / entries.length) * 100;
+        chartData[date] = rate;
+      } else {
+        chartData[date] = 0;
+      }
+    });
+    
+    // Sort by date
+    final sortedDates = chartData.keys.toList()..sort((a, b) => a.compareTo(b));
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Success Rate Trend',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Container(
+              height: 200,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Y-axis labels
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('100%', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('75%', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('50%', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('25%', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('0%', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    ],
+                  ),
+                  SizedBox(width: 8),
+                  // Chart
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: sortedDates.map((date) {
+                        final value = chartData[date] ?? 0;
+                        final barHeight = value * 1.8; // 180 max height for 100%
+                        
+                        return Tooltip(
+                          message: '${DateFormat('MMM d').format(date)}: ${value.toStringAsFixed(1)}%',
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: barHeight.clamp(4, 180),
+                                decoration: BoxDecoration(
+                                  color: _getSuccessRateColor(value),
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                DateFormat('d/M').format(date),
+                                style: TextStyle(fontSize: 10, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Color _getSuccessRateColor(double rate) {
+    if (rate >= 80) return Colors.green;
+    if (rate >= 60) return Colors.lightGreen;
+    if (rate >= 40) return Colors.amber;
+    if (rate >= 20) return Colors.orange;
+    return Colors.red;
+  }
+  
+  Widget _buildStreakTrendChart() {
+    final habit = widget.habit;
+    
+    if (habit.entries.isEmpty) {
+      return _buildEmptyChartCard('Streak Trends', 'Add entries to see your streak trends');
+    }
+    
+    // Get streak data
+    final currentStreak = habit.currentStreak;
+    final bestStreak = habit.bestStreak;
+    final avgStreak = habit.entries.length / (habit.negativeCount > 0 ? habit.negativeCount + 1 : 1);
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Streak Analysis',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStreakMetric('Current', currentStreak, Icons.local_fire_department, 
+                  currentStreak > 0 ? Colors.orange : Colors.grey),
+                _buildStreakMetric('Best', bestStreak, Icons.emoji_events, 
+                  bestStreak > 0 ? Colors.amber : Colors.grey),
+                _buildStreakMetric('Average', avgStreak.round(), Icons.bar_chart, 
+                  avgStreak > 0 ? Colors.blue : Colors.grey),
+              ],
+            ),
+            SizedBox(height: 16),
+            if (currentStreak > 0 && bestStreak > 0)
+              LinearProgressIndicator(
+                value: currentStreak / bestStreak,
+                backgroundColor: Colors.grey.withOpacity(0.2),
+                color: _getStreakProgressColor(currentStreak, bestStreak),
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            if (currentStreak > 0 && bestStreak > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  '${(currentStreak / bestStreak * 100).round()}% of your best streak',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStreakMetric(String label, int value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 28),
+        SizedBox(height: 8),
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Color _getStreakProgressColor(int current, int best) {
+    final ratio = current / best;
+    if (ratio >= 0.9) return Colors.green;
+    if (ratio >= 0.7) return Colors.lightGreen;
+    if (ratio >= 0.5) return Colors.amber;
+    if (ratio >= 0.3) return Colors.orange;
+    return Colors.red;
+  }
+  
+  Widget _buildPerformanceInsights() {
+    final habit = widget.habit;
+    
+    if (habit.entries.isEmpty) {
+      return _buildEmptyChartCard('Performance Insights', 'Add entries to see performance insights');
+    }
+    
+    // Generate insights based on habit data
+    final insights = _generateInsights(habit);
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Performance Insights',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            ...insights.map((insight) => _buildInsightItem(insight)),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildInsightItem(Map<String, dynamic> insight) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: insight['color'].withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: insight['color'].withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(insight['icon'], color: insight['color'], size: 20),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  insight['title'],
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  insight['description'],
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  List<Map<String, dynamic>> _generateInsights(Habit habit) {
+    List<Map<String, dynamic>> insights = [];
+    
+    // Success rate insight
+    if (habit.entries.length >= 5) {
+      final successRate = habit.successRate;
+      String rateDescription;
+      Color rateColor;
+      
+      if (successRate >= 90) {
+        rateDescription = 'Excellent! You\'re crushing this habit.';
+        rateColor = Colors.green;
+      } else if (successRate >= 70) {
+        rateDescription = 'Good progress! Keep up the momentum.';
+        rateColor = Colors.lightGreen;
+      } else if (successRate >= 50) {
+        rateDescription = 'You\'re doing okay. Room for improvement.';
+        rateColor = Colors.amber;
+      } else {
+        rateDescription = 'This habit seems challenging. Consider adjusting your approach.';
+        rateColor = Colors.orange;
+      }
+      
+      insights.add({
+        'title': 'Success Rate: ${successRate.toStringAsFixed(1)}%',
+        'description': rateDescription,
+        'icon': Icons.percent,
+        'color': rateColor,
+      });
+    }
+    
+    // Streak insight
+    if (habit.currentStreak > 0) {
+      String streakDescription;
+      Color streakColor;
+      
+      if (habit.currentStreak >= habit.bestStreak) {
+        streakDescription = 'You\'re on your best streak ever! Amazing work!';
+        streakColor = Colors.purple;
+      } else if (habit.currentStreak >= habit.bestStreak * 0.7) {
+        streakDescription = 'Getting close to your best streak! Keep going!';
+        streakColor = Colors.blue;
+      } else {
+        streakDescription = 'Good progress on your current streak.';
+        streakColor = Colors.teal;
+      }
+      
+      insights.add({
+        'title': '${habit.currentStreak}-Day Streak',
+        'description': streakDescription,
+        'icon': Icons.local_fire_department,
+        'color': streakColor,
+      });
+    }
+    
+    // Most active day
+    if (habit.entries.length >= 7) {
+      final dayCount = <int, int>{};
+      for (var entry in habit.entries) {
+        final day = entry.date.weekday;
+        dayCount[day] = (dayCount[day] ?? 0) + 1;
+      }
+      
+      final mostActiveDay = dayCount.entries.reduce((a, b) => a.value > b.value ? a : b);
+      final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      
+      insights.add({
+        'title': 'Most Active Day',
+        'description': '${dayNames[mostActiveDay.key - 1]} is your most consistent day',
+        'icon': Icons.calendar_today,
+        'color': Colors.blue,
+      });
+    }
+    
+    return insights;
+  }
+  
+  Widget _buildEmptyChartCard(String title, String message) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.bar_chart, size: 48, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    message,
+                    style: TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildEntriesTab() {
@@ -623,6 +1051,279 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> with SingleTicker
     final timeSinceLastFailure = habit.getTimeSinceLastFailure();
     
     return _buildInfoRow('Time Since Last Failure', timeSinceLastFailure, color: Colors.green);
+  }
+  
+  Widget _buildStreakCard() {
+    final habit = widget.habit;
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary.withOpacity(0.7),
+              Theme.of(context).colorScheme.primary,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current Streak',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${habit.currentStreak}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'days',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Best Streak',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${habit.bestStreak}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            'days',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            if (habit.currentStreak > 0)
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_fire_department, color: Colors.amber, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      habit.getMilestoneMessage(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildAchievementsSection() {
+    final habit = widget.habit;
+    final achievements = habit.unlockedAchievements;
+    
+    if (achievements.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Achievements',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.emoji_events_outlined, size: 48, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text(
+                      'No achievements yet',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Keep going to unlock achievements!',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Achievements',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '${achievements.length} unlocked',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: achievements.take(5).map((achievement) {
+                return Tooltip(
+                  message: _getAchievementName(achievement),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _getAchievementColor(achievement).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _getAchievementColor(achievement).withOpacity(0.5),
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      _getAchievementIcon(achievement),
+                      color: _getAchievementColor(achievement),
+                      size: 24,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  IconData _getAchievementIcon(String achievementId) {
+    // Simple mapping for common achievements
+    if (achievementId.contains('week')) return Icons.local_fire_department;
+    if (achievementId.contains('month')) return Icons.emoji_events;
+    if (achievementId.contains('year')) return Icons.celebration;
+    if (achievementId.contains('consistency')) return Icons.auto_graph;
+    if (achievementId.contains('perfect')) return Icons.star;
+    return Icons.emoji_events;
+  }
+  
+  Color _getAchievementColor(String achievementId) {
+    // Simple color mapping
+    if (achievementId.contains('week')) return Colors.orange;
+    if (achievementId.contains('month')) return Colors.blue;
+    if (achievementId.contains('year')) return Colors.amber;
+    if (achievementId.contains('consistency')) return Colors.green;
+    if (achievementId.contains('perfect')) return Colors.purple;
+    return Colors.teal;
+  }
+  
+  String _getAchievementName(String achievementId) {
+    // Map achievement IDs to display names
+    final nameMap = {
+      'first_week': 'Week Warrior',
+      'first_month': 'Month Master',
+      'centurion': 'Centurion',
+      'year_warrior': 'Year Warrior',
+      'consistency_king': 'Consistency King',
+      'perfectionist': 'Perfectionist',
+      'getting_started': 'Getting Started',
+      'half_century': 'Half Century',
+      'century_club': 'Century Club',
+      'dedication_master': 'Dedication Master',
+      'first_thousand': 'First Thousand',
+      'point_collector': 'Point Collector',
+      'point_master': 'Point Master',
+      'legend': 'Legend',
+    };
+    
+    return nameMap[achievementId] ?? achievementId;
   }
   
   Widget _buildInfoRow(String label, String value, {Color? color}) {

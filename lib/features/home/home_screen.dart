@@ -531,21 +531,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildHabitsList(List<Habit> habits) {
     return ListView.separated(
       padding: EdgeInsets.all(16),
-      itemCount: habits.length + 1, // Add 1 for QuickEntryWidget
+      itemCount: habits.length, // Add 1 for QuickEntryWidget
       separatorBuilder: (context, index) {
         if (index == 0) return SizedBox(height: 16); // Space after quick entry
         return SizedBox(height: 8);
       },
       itemBuilder: (context, index) {
-        if (index == 0) {
-          // Quick entry widget at the top
-          return QuickEntryWidget(
-            habits: _habits,
-            onUpdate: _loadHabits,
-          );
-        }
+        // if (index == 0) {
+        //   // Quick entry widget at the top
+        //   return QuickEntryWidget(
+        //     habits: _habits,
+        //     onUpdate: _loadHabits,
+        //   );
+        // }
         
-        final habit = habits[index - 1];
+        final habit = habits[index];
         return HabitListItem(
           habit: habit,
           onTap: () async {

@@ -78,48 +78,43 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Container(
-          constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHeader(),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 20),
-                      _buildSkipSection(),
-                      if (!_isSkipped) ...[
-                        SizedBox(height: 20),
-                        _buildMainContent(),
-                        if (widget.habit.targetValue != null && !_isSkipped) ...[SizedBox(height: 20), _buildTargetProgressIndicator()],
-                        SizedBox(height: 20),
-                        _buildNotesSection(),
-                      ] else ...[
-                        SizedBox(height: 20),
-                        _buildSkipReasonSection(),
-                      ],
-                      SizedBox(height: 24),
-                      _buildActionButtons(),
-                    ],
-                  ),
-                ),
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      // padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 16, top: 16, left: 16, right: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 5)],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildHeader(),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!_isSkipped) ...[
+                    SizedBox(height: 20),
+                    _buildMainContent(),
+                    if (widget.habit.targetValue != null && !_isSkipped) ...[SizedBox(height: 10), _buildTargetProgressIndicator()],
+                    SizedBox(height: 10),
+                    _buildNotesSection(),
+                  ] else ...[
+                    SizedBox(height: 20),
+                    _buildSkipReasonSection(),
+                  ],
+                  SizedBox(height: 10),
+                  _buildSkipSection(),
+                  SizedBox(height: 24),
+                  _buildActionButtons(),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -278,12 +273,12 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
     final unitName = widget.habit.getUnitDisplayName();
 
     return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.3)),
-      ),
+      padding: EdgeInsets.all(0),
+      // decoration: BoxDecoration(
+      //   color: Theme.of(context).colorScheme.surface,
+      //   borderRadius: BorderRadius.circular(16),
+      //   border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+      // ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -321,9 +316,9 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
           ],
 
           if (widget.habit.unit == HabitUnit.Count) ...[
-            Text('Enter Count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            SizedBox(height: 12),
-            
+            // Text('Enter Count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            // SizedBox(height: 12),
+
             // Enhanced count input with stepper buttons
             Container(
               padding: EdgeInsets.all(16),
@@ -340,11 +335,14 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
                     children: [
                       // Minus button
                       Container(
+                        height: 30,
+                        width: 30,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(10),
                           color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                         ),
-                        child: IconButton(
+                        child: IconButton.filledTonal(
+                          style: IconButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                           onPressed: () {
                             final currentValue = int.tryParse(_countController.text) ?? 0;
                             if (currentValue > 0) {
@@ -356,12 +354,12 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
                             }
                           },
                           icon: Icon(Icons.remove, color: Theme.of(context).colorScheme.primary),
-                          iconSize: 24,
+                          iconSize: 16,
                         ),
                       ),
-                      
-                      SizedBox(width: 20),
-                      
+
+                      SizedBox(width: 10),
+
                       // Count display and text field
                       Expanded(
                         child: Container(
@@ -373,11 +371,7 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
                           child: TextFormField(
                             controller: _countController,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
                             decoration: InputDecoration(
                               hintText: '0',
                               suffixText: unitName,
@@ -394,16 +388,19 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
                           ),
                         ),
                       ),
-                      
-                      SizedBox(width: 20),
-                      
+
+                      SizedBox(width: 10),
+
                       // Plus button
                       Container(
+                        height: 30,
+                        width: 30,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(10),
                           color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                         ),
                         child: IconButton(
+                          style: IconButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                           onPressed: () {
                             final currentValue = int.tryParse(_countController.text) ?? 0;
                             final newValue = currentValue + 1;
@@ -413,75 +410,79 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
                             });
                           },
                           icon: Icon(Icons.add, color: Theme.of(context).colorScheme.primary),
-                          iconSize: 24,
+                          iconSize: 16,
                         ),
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: 16),
-                  
+
                   // Quick increment buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildQuickButton('+1', 1),
-                      _buildQuickButton('+5', 5),
-                      _buildQuickButton('+10', 10),
-                      _buildQuickButton('Reset', -1), // Special case for reset
-                    ],
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      spacing: 5,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildQuickButton('+1', 1),
+                        _buildQuickButton('+5', 5),
+                        _buildQuickButton('+10', 10),
+                        _buildQuickButton('Reset', -1), // Special case for reset
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            
+
             SizedBox(height: 16),
-            
-            // Enhanced slider
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Quick Slider', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                      Text('${_sliderValue.toString()} $unitName', 
-                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, 
-                                          color: Theme.of(context).colorScheme.primary)),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      thumbColor: Theme.of(context).colorScheme.primary,
-                      activeTrackColor: Theme.of(context).colorScheme.primary,
-                      inactiveTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                      overlayColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 12),
-                      trackHeight: 6,
-                    ),
-                    child: Slider(
-                      value: _sliderValue.toDouble(),
-                      min: 0,
-                      max: 50,
-                      divisions: 50,
-                      onChanged: (value) {
-                        setState(() {
-                          _sliderValue = value.round();
-                          _countController.text = _sliderValue.toString();
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
+            // // Enhanced slider
+            // Container(
+            //   padding: EdgeInsets.all(16),
+            //   decoration: BoxDecoration(
+            //     color: Colors.grey.withOpacity(0.05),
+            //     borderRadius: BorderRadius.circular(12),
+            //   ),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       Row(
+            //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //         children: [
+            //           Text('Quick Slider', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            //           Text('${_sliderValue.toString()} $unitName',
+            //                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
+            //                               color: Theme.of(context).colorScheme.primary)),
+            //         ],
+            //       ),
+            //       SizedBox(height: 8),
+            //       SliderTheme(
+            //         data: SliderTheme.of(context).copyWith(
+            //           thumbColor: Theme.of(context).colorScheme.primary,
+            //           activeTrackColor: Theme.of(context).colorScheme.primary,
+            //           inactiveTrackColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            //           overlayColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            //           thumbShape: RoundSliderThumbShape(enabledThumbRadius: 12),
+            //           trackHeight: 6,
+            //         ),
+            //         child: Slider(
+            //           value: _sliderValue.toDouble(),
+            //           min: 0,
+            //           max: 50,
+            //           divisions: 50,
+            //           onChanged: (value) {
+            //             setState(() {
+            //               _sliderValue = value.round();
+            //               _countController.text = _sliderValue.toString();
+            //             });
+            //           },
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
           ] else ...[
             Text('Enter Amount', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             SizedBox(height: 12),
@@ -752,10 +753,7 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child: Text(
-          label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        ),
+        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       ),
     );
   }
