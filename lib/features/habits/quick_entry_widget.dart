@@ -29,11 +29,10 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
   
   // Get completed habits today
   List<Habit> get completedToday => widget.habits.where((h) {
-    final today = DateTime.now();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final todayEntries = h.entries.where((e) => 
-      e.date.year == today.year &&
-      e.date.month == today.month &&
-      e.date.day == today.day &&
+      e.isSameDate(today) &&
       h.isPositiveDay(e)
     );
     return todayEntries.isNotEmpty;
@@ -43,6 +42,8 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
   Widget build(BuildContext context) {
     if (habitsToday.isEmpty) {
       return Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: EdgeInsets.all(20),
           child: Column(
@@ -67,6 +68,8 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
     }
     
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -74,10 +77,10 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
             padding: EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.today, color: Theme.of(context).colorScheme.primary),
+                Icon(Icons.bolt, color: Theme.of(context).colorScheme.primary),
                 SizedBox(width: 8),
                 Text(
-                  'Today\'s Habits',
+                  'Quick Entry',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -85,7 +88,7 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
                 ),
                 Spacer(),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -105,13 +108,17 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
           // Progress bar
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: LinearProgressIndicator(
-              value: habitsToday.isEmpty ? 1.0 : completedToday.length / habitsToday.length,
-              backgroundColor: Colors.grey.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                completedToday.length == habitsToday.length 
-                    ? Colors.green 
-                    : Theme.of(context).colorScheme.primary,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: habitsToday.isEmpty ? 1.0 : completedToday.length / habitsToday.length,
+                backgroundColor: Colors.grey.withOpacity(0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  completedToday.length == habitsToday.length 
+                      ? Colors.green 
+                      : Theme.of(context).colorScheme.primary,
+                ),
+                minHeight: 8,
               ),
             ),
           ),
@@ -144,6 +151,7 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
         ),
       ),
       child: ListTile(
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -168,7 +176,49 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
           _getSubtitleText(habit),
           style: TextStyle(fontSize: 12),
         ),
-        trailing: _buildQuickActionButton(habit, isCompleted),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isCompleted)
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.check, color: Colors.white, size: 20),
+              )
+            else if (habit.type == HabitType.DoneBased && habit.unit == HabitUnit.Count)
+              // Quick complete button for simple done-based habits
+              ElevatedButton.icon(
+                onPressed: () => _quickComplete(habit),
+                icon: Icon(Icons.add, size: 16),
+                label: Text('Done'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: habit.color ?? Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  minimumSize: Size(0, 36),
+                ),
+              )
+            else
+              // For other types, show quick entry dialog
+              ElevatedButton(
+                onPressed: () => _showQuickEntryDialog(habit),
+                child: Text('Log'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: habit.color?.withOpacity(0.1) ?? 
+                      Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  foregroundColor: habit.color ?? Theme.of(context).colorScheme.primary,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  minimumSize: Size(0, 36),
+                  side: BorderSide(
+                    color: habit.color ?? Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+          ],
+        ),
         onTap: () => _showQuickEntryDialog(habit),
       ),
     );
@@ -187,58 +237,6 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
       case HabitType.FailBased:
         return 'Avoid or track failure';
     }
-  }
-  
-  Widget _buildQuickActionButton(Habit habit, bool isCompleted) {
-    if (isCompleted) {
-      return Container(
-        padding: EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.green,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(Icons.check, color: Colors.white, size: 20),
-      );
-    }
-    
-    if (habit.type == HabitType.DoneBased && habit.unit == HabitUnit.Count) {
-      // Quick complete button for simple done-based habits
-      return GestureDetector(
-        onTap: () => _quickComplete(habit),
-        child: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: habit.color ?? Theme.of(context).colorScheme.primary,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.add, color: Colors.white, size: 20),
-        ),
-      );
-    }
-    
-    // For other types, show quick entry dialog
-    return GestureDetector(
-      onTap: () => _showQuickEntryDialog(habit),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: habit.color?.withOpacity(0.1) ?? 
-              Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: habit.color ?? Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        child: Text(
-          'Log',
-          style: TextStyle(
-            color: habit.color ?? Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
   }
   
   Future<void> _quickComplete(Habit habit) async {
@@ -425,35 +423,88 @@ class _QuickEntryDialogState extends State<QuickEntryDialog> {
                 ),
               ),
             ] else ...[
-              // Value entry with quick buttons
-              Text(
-                'How much?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 12),
-              
-              // Quick value buttons
-              Wrap(
-                spacing: 8,
-                children: _getQuickValueButtons(),
+              // Value entry with integrated controls
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    // Minus button
+                    IconButton(
+                      onPressed: () {
+                        final currentValue = int.tryParse(_valueController.text) ?? 0;
+                        if (currentValue > 0) {
+                          final newValue = currentValue - 1;
+                          _valueController.text = newValue.toString();
+                          setState(() {
+                            _quickValue = newValue;
+                          });
+                        }
+                      },
+                      icon: Icon(Icons.remove_circle_outline, color: Theme.of(context).colorScheme.primary),
+                      iconSize: 24,
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                    
+                    SizedBox(width: 8),
+                    
+                    // Count display and text field
+                    Expanded(
+                      child: TextFormField(
+                        controller: _valueController,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '0',
+                          suffixText: widget.habit.getUnitDisplayName(),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          _quickValue = int.tryParse(value) ?? 0;
+                        },
+                      ),
+                    ),
+                    
+                    SizedBox(width: 8),
+                    
+                    // Plus button
+                    IconButton(
+                      onPressed: () {
+                        final currentValue = int.tryParse(_valueController.text) ?? 0;
+                        final newValue = currentValue + 1;
+                        _valueController.text = newValue.toString();
+                        setState(() {
+                          _quickValue = newValue;
+                        });
+                      },
+                      icon: Icon(Icons.add_circle_outline, color: Theme.of(context).colorScheme.primary),
+                      iconSize: 24,
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                  ],
+                ),
               ),
               
               SizedBox(height: 16),
               
-              // Manual entry
-              TextFormField(
-                controller: _valueController,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  labelText: widget.habit.getUnitDisplayName(),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  _quickValue = int.tryParse(value) ?? 0;
-                },
+              // Quick value buttons
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: _getQuickValueButtons(),
               ),
             ],
             

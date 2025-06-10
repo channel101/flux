@@ -12,9 +12,18 @@ import 'package:flux/features/onboarding/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flux/core/services/storage_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize timezone data
+  tz.initializeTimeZones();
+  
+  // Initialize date formatting
+  await initializeDateFormatting();
   
   // Initialize sqflite_ffi for Windows
   if (Platform.isWindows || Platform.isLinux) {

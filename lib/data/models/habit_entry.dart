@@ -12,14 +12,14 @@ class HabitEntry {
   bool isSkipped; // Whether this day was skipped
   
   HabitEntry({
-    required this.date, 
+    required DateTime date, 
     required this.count, 
     required this.dayNumber,
     this.value,
     this.unit,
     this.notes,
     this.isSkipped = false,
-  });
+  }) : date = DateTime(date.year, date.month, date.day);
   
   Map<String, dynamic> toJson() => {
         'date': date.toIso8601String(),
@@ -31,13 +31,26 @@ class HabitEntry {
         'isSkipped': isSkipped,
       };
       
-  static HabitEntry fromJson(Map<String, dynamic> json) => HabitEntry(
-        date: DateTime.parse(json['date']),
-        count: json['count'],
-        dayNumber: json['dayNumber'] ?? 0,
-        value: json['value']?.toDouble(),
-        unit: json['unit'],
-        notes: json['notes'],
-        isSkipped: json['isSkipped'] ?? false,
-      );
+  static HabitEntry fromJson(Map<String, dynamic> json) {
+    final parsedDate = DateTime.parse(json['date']);
+    // Normalize date to remove time component
+    final normalizedDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+    
+    return HabitEntry(
+      date: normalizedDate,
+      count: json['count'],
+      dayNumber: json['dayNumber'] ?? 0,
+      value: json['value']?.toDouble(),
+      unit: json['unit'],
+      notes: json['notes'],
+      isSkipped: json['isSkipped'] ?? false,
+    );
+  }
+  
+  // Compare dates without considering time
+  bool isSameDate(DateTime other) {
+    return date.year == other.year && 
+           date.month == other.month && 
+           date.day == other.day;
+  }
 }
