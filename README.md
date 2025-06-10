@@ -58,8 +58,15 @@ Flux is a modern, intuitive habit tracking application designed to help you buil
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## 🪲 Feedback & Contribution
+I built this for the community, and I'd love to hear what you think.
+
+All feedback is welcome, whether it's a feature request or a bug report.
+
+If you're a developer, I invite you to check out the GitHub repo. Starring the project ⭐ helps with its visibility and lets me know you find it useful. Contributions, PRs, and issue reports are, of course, always welcome!
+
 ## 🔍 About
 
 Flux helps you build better habits through consistent tracking and meaningful insights. Whether you're trying to exercise more, read daily, or break a bad habit, Flux provides the tools you need to succeed.
 
-Built with 🩷 by wisamidris77
+Check out my X for news about flux: https://x.com/IdrisWisam
