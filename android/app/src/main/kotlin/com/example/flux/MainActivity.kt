@@ -1,4 +1,4 @@
-package com.example.flux
+package com.wisamidris.flux
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -121,14 +121,18 @@ class _HabitTrackerAppState extends State<HabitTrackerApp> {
       darkTheme: darkTheme,
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: widget.isFirstLaunch 
-          ? OnboardingScreen(
-              onComplete: (themePreference) {
-                if (themePreference != null) {
-                  changeTheme(themePreference);
-                }
-                _completeOnboarding();
-              },
-            )
+          ? Builder(
+            builder: (context) {
+              return OnboardingScreen(
+                  onComplete: (themePreference) {
+                    if (themePreference != null) {
+                      changeTheme(themePreference);
+                    }
+                    _completeOnboarding(context);
+                  },
+                );
+            }
+          )
           : HomeScreen(
               toggleTheme: toggleTheme,
               isDarkMode: _isDarkMode,
@@ -137,7 +141,7 @@ class _HabitTrackerAppState extends State<HabitTrackerApp> {
     );
   }
 
-  void _completeOnboarding() async {
+  void _completeOnboarding(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('first_launch', false);
     

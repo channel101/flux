@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.flux"
+    namespace = "com.wisamidris.flux"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973" // Changed this line
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.flux"
+        applicationId = "com.wisamidris.flux"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

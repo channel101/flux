@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final Function(String?)? onComplete;
-  
+
   OnboardingScreen({this.onComplete});
 
   @override
@@ -19,11 +19,11 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> with TickerProviderStateMixin {
   PageController _pageController = PageController();
   int _currentStep = 0;
-  
+
   late AnimationController _headerAnimationController;
   late Animation<Color?> _headerColorAnimation;
   late Animation<double> _headerHeightAnimation;
-  
+
   // User selections
   String? _selectedQuest;
   List<String> _selectedAreas = [];
@@ -38,7 +38,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   bool _wantsReminders = false;
   String? _reminderTime;
   String? _selectedTheme;
-  
+
   final List<String> _steps = [
     'Welcome',
     'Quest Selection',
@@ -49,7 +49,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     'Starter Pack',
     'Reminders',
     'Theme',
-    'Complete'
+    'Complete',
   ];
 
   final List<Color> _stepColors = [
@@ -64,32 +64,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     Color(0xFF3F51B5), // Theme - Indigo
     Color(0xFF1DB954), // Complete - Back to Green
   ];
-  
+
   @override
   void initState() {
     super.initState();
-    _headerAnimationController = AnimationController(
-      duration: Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
+    _headerAnimationController = AnimationController(duration: Duration(milliseconds: 800), vsync: this);
+
     _headerColorAnimation = ColorTween(
       begin: _stepColors[0],
       end: _stepColors[0],
-    ).animate(CurvedAnimation(
-      parent: _headerAnimationController,
-      curve: Curves.easeInOut,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _headerAnimationController, curve: Curves.easeInOut));
+
     _headerHeightAnimation = Tween<double>(
       begin: 120.0,
       end: 120.0,
-    ).animate(CurvedAnimation(
-      parent: _headerAnimationController,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _headerAnimationController, curve: Curves.easeInOut));
   }
-  
+
   @override
   void dispose() {
     _headerAnimationController.dispose();
@@ -100,15 +91,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     _headerColorAnimation = ColorTween(
       begin: _headerColorAnimation.value,
       end: _stepColors[_currentStep],
-    ).animate(CurvedAnimation(
-      parent: _headerAnimationController,
-      curve: Curves.easeInOut,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _headerAnimationController, curve: Curves.easeInOut));
+
     _headerAnimationController.reset();
     _headerAnimationController.forward();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -144,7 +132,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildAnimatedHeader() {
     return AnimatedBuilder(
       animation: _headerAnimationController,
@@ -160,16 +148,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                 (_headerColorAnimation.value ?? _stepColors[_currentStep]).withOpacity(0.8),
               ],
             ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
+            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
             boxShadow: [
-              BoxShadow(
-                color: (_headerColorAnimation.value ?? _stepColors[_currentStep]).withOpacity(0.3),
-                blurRadius: 15,
-                offset: Offset(0, 5),
-              ),
+              BoxShadow(color: (_headerColorAnimation.value ?? _stepColors[_currentStep]).withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5)),
             ],
           ),
           child: Padding(
@@ -178,11 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
               children: [
                 Text(
                   'Flux Setup',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 16),
                 Row(
@@ -192,9 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                         height: 4,
                         margin: EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: index <= _currentStep 
-                              ? Colors.white 
-                              : Colors.white.withOpacity(0.3),
+                          color: index <= _currentStep ? Colors.white : Colors.white.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -204,10 +179,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                 SizedBox(height: 8),
                 Text(
                   '${_currentStep + 1}/${_steps.length} - ${_steps[_currentStep]}',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
                 ),
               ],
             ),
@@ -216,7 +188,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       },
     );
   }
-  
+
   Widget _buildWelcomeStep() {
     return AnimationLimiter(
       child: _buildStepContainer(
@@ -224,54 +196,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
           mainAxisAlignment: MainAxisAlignment.center,
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              horizontalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(horizontalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: [
               Container(
                 width: 120,
                 height: 120,
-                decoration: BoxDecoration(
-                  color: _stepColors[_currentStep].withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.explore,
-                  size: 60,
-                  color: _stepColors[_currentStep],
-                ),
+                decoration: BoxDecoration(color: _stepColors[_currentStep].withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(Icons.explore, size: 60, color: _stepColors[_currentStep]),
               ),
               SizedBox(height: 32),
               Text(
                 'Welcome to Flux!',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Colors.black87, fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16),
               Text(
                 'Let\'s build amazing habits together! Choose your path to get started with personalized recommendations.',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 16, height: 1.5),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 32),
               Row(
                 children: [
                   Expanded(
-                    child: _buildOptionButton(
-                      title: 'Quick Start',
-                      subtitle: 'Set up manually',
-                      icon: Icons.flash_on,
-                      onTap: () => _skipToEnd(),
-                    ),
+                    child: _buildOptionButton(title: 'Quick Start', subtitle: 'Set up manually', icon: Icons.flash_on, onTap: () => _skipToEnd()),
                   ),
                   SizedBox(width: 16),
                   Expanded(
@@ -291,7 +240,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildQuestStep() {
     final quests = [
       {'title': '💪 Boost My Health & Energy', 'value': 'health'},
@@ -301,7 +250,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       {'title': '☀️ Build Positive Daily Routines', 'value': 'routines'},
       {'title': '✨ Something Else', 'value': 'other'},
     ];
-    
+
     return AnimationLimiter(
       child: _buildStepContainer(
         title: 'What\'s Your Main Goal?',
@@ -309,10 +258,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         child: Column(
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: quests.map((quest) {
               return _buildSelectionCard(
                 title: quest['title']!,
@@ -325,7 +271,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildAreasStep() {
     final areas = [
       {'title': '🏃 Health & Fitness', 'subtitle': 'exercise, diet, sleep', 'value': 'health'},
@@ -335,7 +281,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       {'title': '😊 Mental Well-being', 'subtitle': 'mindfulness, journaling, relaxation', 'value': 'mental'},
       {'title': '🏡 Home & Organization', 'subtitle': 'tidying, chores', 'value': 'home'},
     ];
-    
+
     return AnimationLimiter(
       child: _buildStepContainer(
         title: 'Choose Your Focus Areas',
@@ -343,10 +289,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         child: Column(
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: areas.map((area) {
               return _buildMultiSelectionCard(
                 title: area['title']!,
@@ -360,45 +303,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildGoalsStep() {
     if (_selectedAreas.isEmpty) {
       return _buildStepContainer(
         title: 'Setting Your Goals',
         subtitle: 'Please select some areas first',
         child: Center(
-          child: Text(
-            'Go back and select some areas of focus first',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
+          child: Text('Go back and select some areas of focus first', style: TextStyle(color: Colors.grey[600])),
         ),
       );
     }
-    
+
     return AnimationLimiter(
       child: _buildStepContainer(
         title: 'Set Specific Goals',
         subtitle: 'For each area, choose what you\'d like to focus on',
-        child: SingleChildScrollView(
-          child: Column(
-            children: AnimationConfiguration.toStaggeredList(
-              duration: Duration(milliseconds: 375),
-              childAnimationBuilder: (widget) => SlideAnimation(
-                verticalOffset: 50.0,
-                child: FadeInAnimation(child: widget),
-              ),
-              children: _selectedAreas.map((area) => _buildGoalSection(area)).toList(),
-            ),
+        child: Column(
+          children: AnimationConfiguration.toStaggeredList(
+            duration: Duration(milliseconds: 375),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
+            children: _selectedAreas.map((area) => _buildGoalSection(area)).toList(),
           ),
         ),
       ),
     );
   }
-  
+
   Widget _buildGoalSection(String area) {
     final goalOptions = _getGoalOptions(area);
     final selectedGoals = _selectedGoals[area] ?? [];
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       padding: EdgeInsets.all(16),
@@ -412,19 +347,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         children: [
           Text(
             _getAreaTitle(area),
-            style: TextStyle(
-              color: _stepColors[_currentStep],
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: _stepColors[_currentStep], fontSize: 16, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           ...goalOptions.map((goal) {
             return CheckboxListTile(
-              title: Text(
-                goal,
-                style: TextStyle(color: Colors.black87, fontSize: 14),
-              ),
+              title: Text(goal, style: TextStyle(color: Colors.black87, fontSize: 14)),
               value: selectedGoals.contains(goal),
               onChanged: (value) => _toggleGoalSelection(area, goal),
               activeColor: _stepColors[_currentStep],
@@ -434,7 +362,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildLifestyleStep() {
     return AnimationLimiter(
       child: _buildStepContainer(
@@ -443,10 +371,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         child: Column(
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: [
               _buildLifestyleQuestion(
                 'My typical daily energy is like:',
@@ -474,7 +399,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildPreferencesStep() {
     return AnimationLimiter(
       child: _buildStepContainer(
@@ -483,10 +408,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         child: Column(
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: [
               _buildLifestyleQuestion(
                 'I prefer habits that are:',
@@ -507,12 +429,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildStarterPackStep() {
     if (_suggestedHabits.isEmpty) {
       _generateSuggestedHabits();
     }
-    
+
     return AnimationLimiter(
       child: _buildStepContainer(
         title: 'Your Starter Habits',
@@ -520,10 +442,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         child: Column(
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: _suggestedHabits.map((habit) {
               return _buildHabitSuggestionCard(habit);
             }).toList(),
@@ -532,7 +451,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildRemindersStep() {
     return AnimationLimiter(
       child: _buildStepContainer(
@@ -541,16 +460,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         child: Column(
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: [
               SwitchListTile(
-                title: Text(
-                  'Enable Reminders',
-                  style: TextStyle(color: Colors.black87, fontSize: 16),
-                ),
+                title: Text('Enable Reminders', style: TextStyle(color: Colors.black87, fontSize: 16)),
                 subtitle: Text(
                   _wantsReminders ? '🔔 Yes, keep me motivated!' : '🔕 No, I\'ll remember myself',
                   style: TextStyle(color: Colors.grey[600]),
@@ -561,17 +474,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
               ),
               if (_wantsReminders) ...[
                 SizedBox(height: 16),
-                Text(
-                  'When would you like to be reminded?',
-                  style: TextStyle(color: Colors.black87, fontSize: 16),
-                ),
+                Text('When would you like to be reminded?', style: TextStyle(color: Colors.black87, fontSize: 16)),
                 SizedBox(height: 8),
                 ...['🌅 Morning (8-9 AM)', '☀️ Afternoon (1-2 PM)', '🌙 Evening (7-8 PM)'].map((time) {
-                  return _buildSelectionCard(
-                    title: time,
-                    isSelected: _reminderTime == time,
-                    onTap: () => setState(() => _reminderTime = time),
-                  );
+                  return _buildSelectionCard(title: time, isSelected: _reminderTime == time, onTap: () => setState(() => _reminderTime = time));
                 }).toList(),
               ],
             ],
@@ -580,14 +486,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildThemeStep() {
     final themes = [
       {'title': '☀️ Light Mode', 'value': 'light'},
       {'title': '🌑 Dark Mode', 'value': 'dark'},
       {'title': '⚙️ System Default', 'value': 'system'},
     ];
-    
+
     return AnimationLimiter(
       child: _buildStepContainer(
         title: 'Choose Your Style',
@@ -595,10 +501,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         child: Column(
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: themes.map((theme) {
               return _buildSelectionCard(
                 title: theme['title']!,
@@ -611,7 +514,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildCompleteStep() {
     return AnimationLimiter(
       child: _buildStepContainer(
@@ -619,42 +522,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
           mainAxisAlignment: MainAxisAlignment.center,
           children: AnimationConfiguration.toStaggeredList(
             duration: Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
+            childAnimationBuilder: (widget) => SlideAnimation(verticalOffset: 50.0, child: FadeInAnimation(child: widget)),
             children: [
               Container(
                 width: 120,
                 height: 120,
-                decoration: BoxDecoration(
-                  color: _stepColors[_currentStep].withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.celebration,
-                  size: 60,
-                  color: _stepColors[_currentStep],
-                ),
+                decoration: BoxDecoration(color: _stepColors[_currentStep].withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(Icons.celebration, size: 60, color: _stepColors[_currentStep]),
               ),
               SizedBox(height: 32),
               Text(
                 'You\'re All Set!',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Colors.black87, fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16),
               Text(
                 'Your personalized habits are ready! Start your journey towards better habits and watch yourself grow.',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 16, height: 1.5),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 32),
@@ -677,7 +562,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildStepContainer({String? title, String? subtitle, required Widget child}) {
     return Container(
       padding: EdgeInsets.all(20),
@@ -687,31 +572,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
           if (title != null) ...[
             Text(
               title,
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Colors.black87, fontSize: 24, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
           ],
-          if (subtitle != null) ...[
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-                height: 1.4,
-              ),
-            ),
-            SizedBox(height: 24),
-          ],
-          Expanded(child: child),
+          if (subtitle != null) ...[Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 16, height: 1.4)), SizedBox(height: 24)],
+          Expanded(child: SingleChildScrollView(child: child)),
         ],
       ),
     );
   }
-  
+
   Widget _buildOptionButton({
     required String title,
     required String subtitle,
@@ -723,17 +594,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       decoration: BoxDecoration(
         color: isPrimary ? _stepColors[_currentStep] : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isPrimary ? _stepColors[_currentStep] : Colors.grey[300]!,
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
+        border: Border.all(color: isPrimary ? _stepColors[_currentStep] : Colors.grey[300]!, width: 2),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 5))],
       ),
       child: InkWell(
         onTap: onTap,
@@ -742,28 +604,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
           padding: EdgeInsets.all(16),
           child: Column(
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: isPrimary ? Colors.white : _stepColors[_currentStep],
-              ),
+              Icon(icon, size: 32, color: isPrimary ? Colors.white : _stepColors[_currentStep]),
               SizedBox(height: 8),
               Text(
                 title,
-                style: TextStyle(
-                  color: isPrimary ? Colors.white : Colors.black87,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: isPrimary ? Colors.white : Colors.black87, fontSize: 16, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(
-                  color: isPrimary ? Colors.white.withOpacity(0.8) : Colors.grey[600],
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: isPrimary ? Colors.white.withOpacity(0.8) : Colors.grey[600], fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -772,93 +623,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
-  Widget _buildSelectionCard({
-    required String title,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+
+  Widget _buildSelectionCard({required String title, required bool isSelected, required VoidCallback onTap}) {
     return Container(
       margin: EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isSelected ? _stepColors[_currentStep].withOpacity(0.1) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected ? _stepColors[_currentStep] : Colors.grey[300]!,
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: isSelected ? _stepColors[_currentStep] : Colors.grey[300]!, width: 2),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5, offset: Offset(0, 2))],
       ),
       child: ListTile(
         title: Text(
           title,
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
         ),
         trailing: isSelected ? Icon(Icons.check, color: _stepColors[_currentStep]) : null,
         onTap: onTap,
       ),
     );
   }
-  
-  Widget _buildMultiSelectionCard({
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+
+  Widget _buildMultiSelectionCard({required String title, required String subtitle, required bool isSelected, required VoidCallback onTap}) {
     return Container(
       margin: EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isSelected ? _stepColors[_currentStep].withOpacity(0.1) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected ? _stepColors[_currentStep] : Colors.grey[300]!,
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: isSelected ? _stepColors[_currentStep] : Colors.grey[300]!, width: 2),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5, offset: Offset(0, 2))],
       ),
       child: ListTile(
         title: Text(
           title,
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
         ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
-          ),
-        ),
+        subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
         trailing: isSelected ? Icon(Icons.check, color: _stepColors[_currentStep]) : null,
         onTap: onTap,
       ),
     );
   }
-  
-  Widget _buildLifestyleQuestion(
-    String question,
-    List<String> options,
-    String? selectedValue,
-    Function(String) onChanged,
-  ) {
+
+  Widget _buildLifestyleQuestion(String question, List<String> options, String? selectedValue, Function(String) onChanged) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -871,19 +678,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         children: [
           Text(
             question,
-            style: TextStyle(
-              color: Colors.black87,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           ...options.map((option) {
             return RadioListTile<String>(
-              title: Text(
-                option,
-                style: TextStyle(color: Colors.black87, fontSize: 14),
-              ),
+              title: Text(option, style: TextStyle(color: Colors.black87, fontSize: 14)),
               value: option,
               groupValue: selectedValue,
               onChanged: (value) => onChanged(value!),
@@ -894,10 +694,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildHabitSuggestionCard(Habit habit) {
     final isSelected = _selectedHabits.contains(habit);
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.all(16),
@@ -911,33 +711,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         children: [
           Row(
             children: [
-              Icon(
-                habit.icon ?? Icons.star,
-                color: _stepColors[_currentStep],
-                size: 24,
-              ),
+              Icon(habit.icon ?? Icons.star, color: _stepColors[_currentStep], size: 24),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
                   habit.name,
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
           SizedBox(height: 8),
-          Text(
-            'Type: ${habit.type.toString().split('.').last}',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-          ),
-          Text(
-            'Frequency: ${habit.frequency.toString().split('.').last}',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-          ),
+          Text('Type: ${habit.type.toString().split('.').last}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          Text('Frequency: ${habit.frequency.toString().split('.').last}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
           SizedBox(height: 12),
           Row(
             children: [
@@ -958,7 +744,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   Widget _buildNavigationButtons() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -968,11 +754,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
             Expanded(
               child: ElevatedButton(
                 onPressed: _previousStep,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  foregroundColor: Colors.black87,
-                  elevation: 0,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[200], foregroundColor: Colors.black87, elevation: 0),
                 child: Text('Back'),
               ),
             ),
@@ -980,10 +762,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
           Expanded(
             child: ElevatedButton(
               onPressed: _canProceed() ? _nextStep : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _stepColors[_currentStep],
-                foregroundColor: Colors.white,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: _stepColors[_currentStep], foregroundColor: Colors.white),
               child: Text(_currentStep == _steps.length - 1 ? 'Complete' : 'Next'),
             ),
           ),
@@ -991,50 +770,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       ),
     );
   }
-  
+
   // Helper methods
   void _nextStep() {
     if (_currentStep < _steps.length - 1) {
-      _pageController.nextPage(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      _pageController.nextPage(duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
     } else {
       _completeOnboarding();
     }
   }
-  
+
   void _previousStep() {
     if (_currentStep > 0) {
-      _pageController.previousPage(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      _pageController.previousPage(duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
     }
   }
-  
+
   void _skipToEnd() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => HomeScreen(
-        toggleTheme: () {},
-        isDarkMode: false,
-      )),
-    );
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen(toggleTheme: () {}, isDarkMode: false)));
   }
-  
+
   bool _canProceed() {
     switch (_currentStep) {
-      case 1: return _selectedQuest != null;
-      case 2: return _selectedAreas.isNotEmpty;
-      case 3: return _selectedGoals.isNotEmpty;
-      case 4: return _energyLevel != null && _timePreference != null && _timeAvailability != null;
-      case 5: return _habitPreference != null && _startingApproach != null;
-      case 8: return _selectedTheme != null;
-      default: return true;
+      case 1:
+        return _selectedQuest != null;
+      case 2:
+        return _selectedAreas.isNotEmpty;
+      case 3:
+        return _selectedGoals.isNotEmpty;
+      case 4:
+        return _energyLevel != null && _timePreference != null && _timeAvailability != null;
+      case 5:
+        return _habitPreference != null && _startingApproach != null;
+      case 8:
+        return _selectedTheme != null;
+      default:
+        return true;
     }
   }
-  
+
   void _toggleAreaSelection(String area) {
     setState(() {
       if (_selectedAreas.contains(area)) {
@@ -1045,7 +819,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       }
     });
   }
-  
+
   void _toggleGoalSelection(String area, String goal) {
     setState(() {
       if (_selectedGoals[area] == null) {
@@ -1058,7 +832,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       }
     });
   }
-  
+
   void _toggleHabitSelection(Habit habit) {
     setState(() {
       if (_selectedHabits.contains(habit)) {
@@ -1068,25 +842,180 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       }
     });
   }
-  
+
   void _generateSuggestedHabits() {
+    // _suggestedHabits = [
+    //   Habit(
+    //     name: 'Drink Water',
+    //     type: HabitType.DoneBased,
+    //     frequency: HabitFrequency.Daily,
+    //     icon: Icons.local_drink,
+    //     targetValue: 8,
+    //     unit: HabitUnit.Count,
+    //   ),
+    //   Habit(
+    //     name: 'Morning Walk',
+    //     type: HabitType.SuccessBased,
+    //     frequency: HabitFrequency.Daily,
+    //     icon: Icons.directions_walk,
+    //     targetValue: 30,
+    //     unit: HabitUnit.Minutes,
+    //   ),
+    //   Habit(
+    //     name: 'Read Books',
+    //     type: HabitType.SuccessBased,
+    //     frequency: HabitFrequency.Daily,
+    //     icon: Icons.book,
+    //     targetValue: 20,
+    //     unit: HabitUnit.Minutes,
+    //   ),
+    // ];
     _suggestedHabits = [
+      //== Fitness & Workout ==//
       Habit(
-        name: 'Drink Water',
-        type: HabitType.DoneBased,
+        name: 'Workout',
+        type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.local_drink,
-        targetValue: 8,
-        unit: HabitUnit.Count,
+        icon: Icons.fitness_center,
+        targetValue: 30,
+        unit: HabitUnit.Minutes,
+      ),
+      Habit(
+        name: 'Go for a Run',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.directions_run,
+        targetValue: 3, // e.g., 3 Kilometers
+        unit: HabitUnit.Kilometers,
       ),
       Habit(
         name: 'Morning Walk',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
         icon: Icons.directions_walk,
-        targetValue: 30,
+        targetValue: 20,
         unit: HabitUnit.Minutes,
       ),
+      //== Breaking Bad Habits ==//
+      Habit(
+        name: 'No Smoking',
+        type: HabitType.FailBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.smoke_free,
+        targetValue: 1, // 1 successful day
+        unit: HabitUnit.Count,
+      ),
+      Habit(
+        name: 'No PMO',
+        type: HabitType.FailBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.shield, // Using a generic, discreet icon
+        targetValue: 1, // 1 successful day
+        unit: HabitUnit.Count,
+      ),
+      Habit(
+        name: 'No Junk Food',
+        type: HabitType.FailBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.no_food,
+        targetValue: 1,
+        unit: HabitUnit.Count,
+      ),
+      Habit(
+        name: 'Limit Social Media',
+        type: HabitType.FailBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.timer_off,
+        targetValue: 30, // Max 30 minutes
+        unit: HabitUnit.Minutes,
+      ),
+
+      Habit(
+        name: 'Strength Training',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.fitness_center,
+        targetValue: 45,
+        unit: HabitUnit.Minutes,
+      ),
+      Habit(
+        name: 'Stretching / Yoga',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.self_improvement,
+        targetValue: 15,
+        unit: HabitUnit.Minutes,
+      ),
+
+      //== Health & Wellness ==//
+      Habit(
+        name: 'Drink Water',
+        type: HabitType.DoneBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.local_drink,
+        targetValue: 8, // 8 glasses
+        unit: HabitUnit.Count,
+      ),
+      Habit(
+        name: 'Eat a Healthy Meal',
+        type: HabitType.DoneBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.restaurant,
+        targetValue: 3, // 3 healthy meals
+        unit: HabitUnit.Count,
+      ),
+      Habit(
+        name: 'Get 8 Hours of Sleep',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.bedtime,
+        targetValue: 8,
+        unit: HabitUnit.Hours,
+      ),
+      Habit(
+        name: 'Take Vitamins',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.medication,
+        targetValue: 1,
+        unit: HabitUnit.Count,
+      ),
+
+      //== Mindfulness & Mental Health ==//
+      Habit(
+        name: 'Meditate',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.spa,
+        targetValue: 10,
+        unit: HabitUnit.Minutes,
+      ),
+      Habit(
+        name: 'Practice Gratitude',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.sentiment_satisfied_alt,
+        targetValue: 5,
+        unit: HabitUnit.Minutes,
+      ),
+      Habit(
+        name: 'Journaling',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.edit,
+        targetValue: 10,
+        unit: HabitUnit.Minutes,
+      ),
+      Habit(
+        name: 'Digital Detox before Bed',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.mobile_off,
+        targetValue: 60, // 60 minutes before bed
+        unit: HabitUnit.Minutes,
+      ),
+
+      //== Personal Growth & Productivity ==//
       Habit(
         name: 'Read Books',
         type: HabitType.SuccessBased,
@@ -1095,15 +1024,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         targetValue: 20,
         unit: HabitUnit.Minutes,
       ),
+      Habit(
+        name: 'Learn a New Skill',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.school,
+        targetValue: 30,
+        unit: HabitUnit.Minutes,
+      ),
+      Habit(
+        name: 'Plan Your Day',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.event_note,
+        targetValue: 1,
+        unit: HabitUnit.Count,
+      ),
+      Habit(
+        name: 'Tidy Up Space',
+        type: HabitType.SuccessBased,
+        frequency: HabitFrequency.Daily,
+        icon: Icons.cleaning_services,
+        targetValue: 15,
+        unit: HabitUnit.Minutes,
+      ),
+      Habit(
+        name: 'Review Weekly Goals',
+        type: HabitType.DoneBased,
+        frequency: HabitFrequency.Weekdays,
+        icon: Icons.check_circle_outline,
+        targetValue: 1,
+        unit: HabitUnit.Count,
+      ),
     ];
   }
-  
+
   void _completeOnboarding() async {
     // Save selected habits
     for (final habit in _selectedHabits) {
       await StorageService.save(habit);
     }
-    
+
     // Save onboarding data
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('onboarding_quest', _selectedQuest ?? '');
@@ -1116,27 +1077,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     await prefs.setBool('onboarding_wants_reminders', _wantsReminders);
     await prefs.setString('onboarding_reminder_time', _reminderTime ?? '');
     await prefs.setString('onboarding_selected_theme', _selectedTheme ?? 'Default');
-    
+
     // Call completion callback
     if (widget.onComplete != null) {
       widget.onComplete!(_selectedTheme);
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen(
-          toggleTheme: () {},
-          isDarkMode: _selectedTheme == 'dark',
-        )),
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(toggleTheme: () {}, isDarkMode: _selectedTheme == 'dark'),
+        ),
       );
     }
   }
-  
+
   List<String> _getGoalOptions(String area) {
     switch (area) {
       case 'health':
         return ['💧 Drink More Water', '🍎 Eat Healthier Meals', '🏋️ Exercise Regularly', '😴 Improve Sleep Quality', '🚶‍♀️ Walk More Steps'];
       case 'growth':
-        return ['📖 Read More Books/Articles', '🗣️ Learn a New Language', '🎨 Practice a Creative Hobby', '🧘 Meditate or Practice Mindfulness', '✍️ Journal Regularly'];
+        return [
+          '📖 Read More Books/Articles',
+          '🗣️ Learn a New Language',
+          '🎨 Practice a Creative Hobby',
+          '🧘 Meditate or Practice Mindfulness',
+          '✍️ Journal Regularly',
+        ];
       case 'career':
         return ['📚 Learn New Skills', '🎯 Set Daily Goals', '📝 Organize Tasks', '🤝 Network More', '💡 Practice Creativity'];
       case 'finances':
@@ -1149,16 +1115,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         return [];
     }
   }
-  
+
   String _getAreaTitle(String area) {
     switch (area) {
-      case 'health': return '🏃 Health & Fitness';
-      case 'career': return '💼 Career & Work';
-      case 'growth': return '📚 Personal Growth';
-      case 'finances': return '💰 Finances';
-      case 'mental': return '😊 Mental Well-being';
-      case 'home': return '🏡 Home & Organization';
-      default: return area;
+      case 'health':
+        return '🏃 Health & Fitness';
+      case 'career':
+        return '💼 Career & Work';
+      case 'growth':
+        return '📚 Personal Growth';
+      case 'finances':
+        return '💰 Finances';
+      case 'mental':
+        return '😊 Mental Well-being';
+      case 'home':
+        return '🏡 Home & Organization';
+      default:
+        return area;
     }
   }
-} 
+}
