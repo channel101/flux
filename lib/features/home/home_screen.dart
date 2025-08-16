@@ -26,6 +26,10 @@ import 'package:flux/core/services/widget_service.dart';
 import 'package:flux/features/achievements/achievements_view.dart';
 import 'package:flux/features/backup_and_import/backup_import_screen.dart';
 import 'package:flux/features/gamification/points_screen.dart';
+import 'package:flux/core/services/keyboard_service.dart';
+import 'package:flux/core/widgets/keyboard_aware_widget.dart';
+import 'package:flux/core/widgets/focusable_button.dart';
+import 'package:flux/core/widgets/keyboard_shortcuts_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -58,18 +62,59 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _showArchived = false;
   String? _selectedCategory;
   List<String> _categories = [];
+  
+  // Keyboard navigation
+  late ScrollController _habitsScrollController;
+  late ScrollController _dashboardScrollController;
+  List<FocusNode> _focusableNodes = [];
+  final KeyboardService _keyboardService = KeyboardService();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Initialize scroll controllers
+    _habitsScrollController = ScrollController();
+    _dashboardScrollController = ScrollController();
+    
+    // Initialize focus nodes for keyboard navigation
+    _initializeFocusNodes();
+    
+    // Add listener to update scroll controller when tab changes
+    _tabController.addListener(_onTabChanged);
+    
     _loadHabits();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _habitsScrollController.dispose();
+    _dashboardScrollController.dispose();
+    
+    // Dispose focus nodes
+    for (var node in _focusableNodes) {
+      node.dispose();
+    }
+    _focusableNodes.clear();
+    
     super.dispose();
+  }
+
+  void _initializeFocusNodes() {
+    // Create focus nodes for all interactive elements
+    _focusableNodes = List.generate(20, (index) => FocusNode());
+  }
+
+  void _onTabChanged() {
+    // Update the keyboard service with the current scroll controller
+    if (_tabController.indexIsChanging) {
+      final currentController = _tabController.index == 0 
+          ? _habitsScrollController 
+          : _dashboardScrollController;
+      _keyboardService.setScrollController(currentController);
+    }
   }
 
   Future<void> _loadHabits() async {
@@ -309,9 +354,54 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _showKeyboardShortcuts() {
+    showKeyboardShortcutsDialog(context);
+  }
+
+  void _handleClose() {
+    // Close any open dialogs or navigate back
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+  }
+
+  void _handleToggleFullscreen() {
+    // This would need to be implemented based on the platform
+    // For now, we'll just show a message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Fullscreen toggle not implemented on this platform')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return KeyboardAwareWidget(
+      scrollController: _tabController.index == 0 ? _habitsScrollController : _dashboardScrollController,
+      onPreviousPage: () {
+        if (_tabController.index > 0) {
+          _tabController.animateTo(_tabController.index - 1);
+        }
+      },
+      onNextPage: () {
+        if (_tabController.index < _tabController.length - 1) {
+          _tabController.animateTo(_tabController.index + 1);
+        }
+      },
+      onClose: _handleClose,
+      onToggleFullscreen: _handleToggleFullscreen,
+      onAddHabit: _showAddHabit,
+      onOpenSettings: _openSettings,
+      onOpenAnalytics: _openAnalytics,
+      onToggleArchive: _toggleArchiveView,
+      onFilterByCategory: _showCategoryFilter,
+      onBulkEdit: _openBulkEdit,
+      onBackup: _openBackupScreen,
+      onYearReview: _showYearInReview,
+      onAchievements: _openAchievements,
+      onPoints: _openPointsScreen,
+      onShowKeyboardShortcuts: _showKeyboardShortcuts,
+      focusableNodes: _focusableNodes,
+      child: Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,16 +417,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         actions: [
           if (!_showArchived && _categories.isNotEmpty)
-            IconButton(
+            FocusableIconButton(
               icon: Icon(_selectedCategory != null ? Icons.filter_alt : Icons.filter_alt_outlined),
               onPressed: _showCategoryFilter,
-              tooltip: 'Filter by Category',
+              tooltip: 'Filter by Category (F)',
+              focusNode: _focusableNodes.length > 2 ? _focusableNodes[2] : null,
             ),
           if (!_showArchived)
-            IconButton(
+            FocusableIconButton(
               icon: Icon(Icons.analytics),
               onPressed: _openAnalytics,
-              tooltip: 'Analytics Dashboard',
+              tooltip: 'Analytics Dashboard (D)',
+              focusNode: _focusableNodes.length > 3 ? _focusableNodes[3] : null,
             ),
           if (!_showArchived && _filteredHabits.isNotEmpty)
             PopupMenuButton<String>(
@@ -414,14 +506,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ],
             ),
-          IconButton(
+          FocusableIconButton(
             icon: Icon(_showArchived ? Icons.inventory_2_outlined : Icons.archive),
             onPressed: _toggleArchiveView,
             tooltip: _showArchived ? 'Show Active Habits' : 'Show Archived',
+            focusNode: _focusableNodes.length > 4 ? _focusableNodes[4] : null,
           ),
-          IconButton(
+          FocusableIconButton(
+            icon: Icon(Icons.keyboard),
+            onPressed: _showKeyboardShortcuts,
+            tooltip: 'Keyboard Shortcuts (F1)',
+            focusNode: _focusableNodes.isNotEmpty ? _focusableNodes[0] : null,
+          ),
+          FocusableIconButton(
             icon: Icon(Icons.settings),
             onPressed: _openSettings,
+            tooltip: 'Settings (S)',
+            focusNode: _focusableNodes.length > 1 ? _focusableNodes[1] : null,
           ),
         ],
         bottom: !_showArchived ? TabBar(
@@ -432,8 +533,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ],
         ) : null,
       ),
-      floatingActionButton: !_showArchived ? FloatingActionButton(
+      floatingActionButton: !_showArchived ? FocusableButton(
         onPressed: _showAddHabit,
+        focusNode: _focusableNodes.length > 5 ? _focusableNodes[5] : null,
         child: Icon(Icons.add),
       ) : null,
       body: _isLoading
@@ -447,6 +549,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     _buildDashboard(),
                   ],
                 ),
+      ),
     );
   }
 
@@ -480,6 +583,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
     
     return ListView.separated(
+      controller: _habitsScrollController,
       padding: EdgeInsets.all(16),
       itemCount: _archivedHabits.length,
       separatorBuilder: (_, __) => SizedBox(height: 8),
@@ -530,6 +634,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildHabitsList(List<Habit> habits) {
     return ListView.separated(
+      controller: _habitsScrollController,
       padding: EdgeInsets.all(16),
       itemCount: habits.length, // Add 1 for QuickEntryWidget
       separatorBuilder: (context, index) {
@@ -571,6 +676,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
     
     return SingleChildScrollView(
+      controller: _dashboardScrollController,
       padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
