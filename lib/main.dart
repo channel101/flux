@@ -11,6 +11,8 @@ import 'package:flux/core/services/theme_service.dart';
 import 'package:flux/features/onboarding/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flux/core/services/storage_service.dart';
+import 'package:flux/core/services/keyboard_service.dart';
+import 'package:flux/core/widgets/keyboard_aware_widget.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
@@ -27,6 +29,9 @@ void main() async {
   // Initialize services
   await NotificationService.initialize();
   await WidgetService.initialize();
+  
+  // Initialize keyboard service
+  KeyboardService().initialize();
   
   // Check if first launch
   final prefs = await SharedPreferences.getInstance();
