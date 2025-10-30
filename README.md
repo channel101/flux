@@ -9,9 +9,9 @@ Flux is a modern, intuitive habit tracking application designed to help you buil
 ## ✨ Key Features
 
 - **Multiple Habit Types** - Track habits in different ways:
-  - **Achieve** - Count successes (e.g., workout sessions completed)
-  - **Avoid** - Track failures to minimize (e.g., smoking, junk food)
-  - **Check** - Simple yes/no completion tracking
+  - **Achieve** - Count only ≥ 100% as successful (e.g., workout sessions completed)
+  - **Avoid** - Track triggers to minimize urges (e.g., smoking, junk food, gaming)
+  - **Check** - Simple yes/no answers, all scores ≥ 0 are successful (e.g., go outside)
 
 - **Detailed Analytics** - Visualize your progress with:
   - Success rates and streaks
