@@ -5,6 +5,7 @@ import 'package:flux/core/enums/app_enums.dart';
 import 'package:flux/data/models/habit.dart';
 import 'package:flux/data/models/habit_entry.dart';
 import 'package:flux/main.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 
 class AddEntryDialog extends StatefulWidget {
   final Habit habit;
@@ -138,7 +139,7 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
-            child: Icon(widget.habit.icon ?? Icons.star, color: Colors.white, size: 32),
+            child: HabitIcon(codePoint: widget.habit.icon, color: Colors.white, size: 32),
           ),
           SizedBox(width: 16),
           Expanded(

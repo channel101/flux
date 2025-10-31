@@ -209,9 +209,7 @@ class DatabaseService {
       where: 'habitId = ?',
       whereArgs: [habitId],
     );
-    List<IconData> unlockedIcons = iconMaps.map((map) {
-      return IconData(map['iconCode'], fontFamily: 'MaterialIcons');
-    }).toList();
+    List<int> unlockedIcons = iconMaps.map((map) => map['iconCode'] as int).toList();
     
     // Load motivational messages
     final List<Map<String, dynamic>> messageMaps = await db.query(
@@ -236,7 +234,7 @@ class DatabaseService {
       name: habitMap['name'],
       type: HabitType.values[habitMap['type']],
       displayMode: ReportDisplay.values[habitMap['displayMode']],
-      icon: habitMap['icon'] != null ? IconData(habitMap['icon'], fontFamily: 'MaterialIcons') : null,
+      icon: habitMap['icon'],
       color: habitMap['color'] != null ? Color(habitMap['color']) : null,
       isArchived: habitMap['isArchived'] == 1,
       notes: habitMap['notes'],
@@ -283,7 +281,7 @@ class DatabaseService {
           'name': habit.name,
           'type': habit.type.index,
           'displayMode': habit.displayMode.index,
-          'icon': habit.icon?.codePoint,
+          'icon': habit.icon,
           'color': habit.color?.value,
           'isArchived': habit.isArchived ? 1 : 0,
           'notes': habit.notes,
@@ -394,7 +392,7 @@ class DatabaseService {
           'unlocked_icons',
           {
             'habitId': habit.id,
-            'iconCode': icon.codePoint,
+            'iconCode': icon,
           },
         );
       }

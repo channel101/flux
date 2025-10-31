@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flux/core/services/storage_service.dart';
 import 'package:flux/core/services/keyboard_service.dart';
 import 'package:flux/core/widgets/keyboard_aware_widget.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
@@ -234,8 +235,8 @@ class HabitListItem extends StatelessWidget {
                             Theme.of(context).colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        habit.icon ?? Icons.star,
+                      child: HabitIcon(
+                        codePoint: habit.icon,
                         color: habit.color ?? Theme.of(context).colorScheme.primary,
                         size: isCompact ? 20 : 28,
                       ),

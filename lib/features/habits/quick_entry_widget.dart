@@ -6,6 +6,7 @@ import 'package:flux/core/services/storage_service.dart';
 import 'package:flux/features/achievements/achievements_system.dart';
 import 'package:flux/core/services/notification_service.dart';
 import 'package:flux/main.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 
 class QuickEntryWidget extends StatefulWidget {
   final List<Habit> habits;
@@ -151,8 +152,8 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
                 Theme.of(context).colorScheme.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            habit.icon ?? Icons.star,
+          child: HabitIcon(
+            codePoint: habit.icon,
             color: habit.color ?? Theme.of(context).colorScheme.primary,
             size: 20,
           ),
@@ -359,8 +360,8 @@ class _QuickEntryDialogState extends State<QuickEntryDialog> {
                         Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    widget.habit.icon ?? Icons.star,
+                  child: HabitIcon(
+                    codePoint: widget.habit.icon,
                     color: widget.habit.color ?? Theme.of(context).colorScheme.primary,
                     size: 24,
                   ),

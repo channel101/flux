@@ -13,6 +13,7 @@ import 'package:flux/features/habits/add_entry_dialog.dart';
 import 'package:flux/data/models/habit.dart';
 import 'package:flux/features/habits/habit_detail_screen.dart';
 import 'package:flux/data/models/habit_entry.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 import 'package:flux/features/home/home_screen.dart';
 import 'package:flux/core/services/settings_service.dart';
 import 'package:flux/core/services/storage_service.dart';
@@ -940,8 +941,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           final habit = sortedHabits[index];
           return Row(
             children: [
-              Icon(
-                habit.icon ?? Icons.star,
+              HabitIcon(
+                codePoint: habit.icon,
                 color: Theme.of(context).colorScheme.primary,
               ),
               SizedBox(width: 12),

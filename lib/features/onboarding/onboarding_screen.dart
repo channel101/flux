@@ -6,6 +6,7 @@ import 'package:flux/data/models/habit.dart';
 import 'package:flux/core/services/storage_service.dart';
 import 'package:flux/features/home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final Function(String?)? onComplete;
@@ -711,7 +712,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         children: [
           Row(
             children: [
-              Icon(habit.icon ?? Icons.star, color: _stepColors[_currentStep], size: 24),
+              HabitIcon(codePoint: habit.icon, color: _stepColors[_currentStep], size: 24),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -876,7 +877,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Workout',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.fitness_center,
+        icon: Icons.fitness_center.codePoint,
         targetValue: 30,
         unit: HabitUnit.Minutes,
       ),
@@ -884,7 +885,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Go for a Run',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.directions_run,
+        icon: Icons.directions_run.codePoint,
         targetValue: 3, // e.g., 3 Kilometers
         unit: HabitUnit.Kilometers,
       ),
@@ -892,7 +893,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Morning Walk',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.directions_walk,
+        icon: Icons.directions_walk.codePoint,
         targetValue: 20,
         unit: HabitUnit.Minutes,
       ),
@@ -901,7 +902,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'No Smoking',
         type: HabitType.FailBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.smoke_free,
+        icon: Icons.smoke_free.codePoint,
         targetValue: 1, // 1 successful day
         unit: HabitUnit.Count,
       ),
@@ -909,7 +910,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'No PMO',
         type: HabitType.FailBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.shield, // Using a generic, discreet icon
+        icon: Icons.shield.codePoint, // Using a generic, discreet icon
         targetValue: 1, // 1 successful day
         unit: HabitUnit.Count,
       ),
@@ -917,7 +918,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'No Junk Food',
         type: HabitType.FailBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.no_food,
+        icon: Icons.no_food.codePoint,
         targetValue: 1,
         unit: HabitUnit.Count,
       ),
@@ -925,7 +926,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Limit Social Media',
         type: HabitType.FailBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.timer_off,
+        icon: Icons.timer_off.codePoint,
         targetValue: 30, // Max 30 minutes
         unit: HabitUnit.Minutes,
       ),
@@ -934,7 +935,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Strength Training',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.fitness_center,
+        icon: Icons.fitness_center.codePoint,
         targetValue: 45,
         unit: HabitUnit.Minutes,
       ),
@@ -942,7 +943,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Stretching / Yoga',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.self_improvement,
+        icon: Icons.self_improvement.codePoint,
         targetValue: 15,
         unit: HabitUnit.Minutes,
       ),
@@ -952,7 +953,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Drink Water',
         type: HabitType.DoneBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.local_drink,
+        icon: Icons.local_drink.codePoint,
         targetValue: 8, // 8 glasses
         unit: HabitUnit.Count,
       ),
@@ -960,7 +961,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Eat a Healthy Meal',
         type: HabitType.DoneBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.restaurant,
+        icon: Icons.restaurant.codePoint,
         targetValue: 3, // 3 healthy meals
         unit: HabitUnit.Count,
       ),
@@ -968,7 +969,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Get 8 Hours of Sleep',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.bedtime,
+        icon: Icons.bedtime.codePoint,
         targetValue: 8,
         unit: HabitUnit.Hours,
       ),
@@ -976,7 +977,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Take Vitamins',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.medication,
+        icon: Icons.medication.codePoint,
         targetValue: 1,
         unit: HabitUnit.Count,
       ),
@@ -986,7 +987,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Meditate',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.spa,
+        icon: Icons.spa.codePoint,
         targetValue: 10,
         unit: HabitUnit.Minutes,
       ),
@@ -994,7 +995,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Practice Gratitude',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.sentiment_satisfied_alt,
+        icon: Icons.sentiment_satisfied_alt.codePoint,
         targetValue: 5,
         unit: HabitUnit.Minutes,
       ),
@@ -1002,7 +1003,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Journaling',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.edit,
+        icon: Icons.edit.codePoint,
         targetValue: 10,
         unit: HabitUnit.Minutes,
       ),
@@ -1010,7 +1011,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Digital Detox before Bed',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.mobile_off,
+        icon: Icons.mobile_off.codePoint,
         targetValue: 60, // 60 minutes before bed
         unit: HabitUnit.Minutes,
       ),
@@ -1020,7 +1021,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Read Books',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.book,
+        icon: Icons.book.codePoint,
         targetValue: 20,
         unit: HabitUnit.Minutes,
       ),
@@ -1028,7 +1029,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Learn a New Skill',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.school,
+        icon: Icons.school.codePoint,
         targetValue: 30,
         unit: HabitUnit.Minutes,
       ),
@@ -1036,7 +1037,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Plan Your Day',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.event_note,
+        icon: Icons.event_note.codePoint,
         targetValue: 1,
         unit: HabitUnit.Count,
       ),
@@ -1044,7 +1045,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Tidy Up Space',
         type: HabitType.SuccessBased,
         frequency: HabitFrequency.Daily,
-        icon: Icons.cleaning_services,
+        icon: Icons.cleaning_services.codePoint,
         targetValue: 15,
         unit: HabitUnit.Minutes,
       ),
@@ -1052,7 +1053,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         name: 'Review Weekly Goals',
         type: HabitType.DoneBased,
         frequency: HabitFrequency.Weekdays,
-        icon: Icons.check_circle_outline,
+        icon: Icons.check_circle_outline.codePoint,
         targetValue: 1,
         unit: HabitUnit.Count,
       ),
