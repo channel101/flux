@@ -13,7 +13,9 @@ class Habit {
   String name;
   HabitType type;
   ReportDisplay displayMode;
-  IconData? icon;
+  // Note: icon stores the codePoint (int). UI layer should construct IconData from this.
+  // Example: IconData(habit.icon, fontFamily: 'MaterialIcons')
+  int? icon;
   List<HabitEntry> entries;
   Color? color;
   bool isArchived;
@@ -40,7 +42,8 @@ class Habit {
   double experiencePoints;
   List<String> unlockedAchievements;
   List<String> unlockedThemes;
-  List<IconData> unlockedIcons;
+  // Note: unlockedIcons stores codePoints (int). UI layer should construct IconData from these.
+  List<int> unlockedIcons;
   
   // Location-based reminder
   String? locationReminder;
@@ -84,7 +87,7 @@ class Habit {
     this.experiencePoints = 0.0,
     List<String>? unlockedAchievements,
     List<String>? unlockedThemes,
-    List<IconData>? unlockedIcons,
+    List<int>? unlockedIcons,
     this.locationReminder,
     this.reminderLatitude,
     this.reminderLongitude,
@@ -112,7 +115,7 @@ class Habit {
         'name': name,
         'type': type.index,
         'displayMode': displayMode.index,
-        'icon': icon?.codePoint,
+        'icon': icon,
         'color': color?.value,
         'isArchived': isArchived,
         'notes': notes,
@@ -135,7 +138,7 @@ class Habit {
         'experiencePoints': experiencePoints,
         'unlockedAchievements': unlockedAchievements,
         'unlockedThemes': unlockedThemes,
-        'unlockedIcons': unlockedIcons.map((i) => i.codePoint).toList(),
+        'unlockedIcons': unlockedIcons,
         'locationReminder': locationReminder,
         'reminderLatitude': reminderLatitude,
         'reminderLongitude': reminderLongitude,
@@ -151,7 +154,7 @@ class Habit {
         name: json['name'],
         type: HabitType.values[json['type'] ?? 1],
         displayMode: ReportDisplay.values[json['displayMode'] ?? 0],
-        icon: json['icon'] != null ? IconData(json['icon'], fontFamily: 'MaterialIcons') : null,
+        icon: json['icon'],
         color: json['color'] != null ? Color(json['color']) : null,
         isArchived: json['isArchived'] ?? false,
         notes: json['notes'],
@@ -176,9 +179,7 @@ class Habit {
         experiencePoints: json['experiencePoints']?.toDouble() ?? 0.0,
         unlockedAchievements: List<String>.from(json['unlockedAchievements'] ?? []),
         unlockedThemes: List<String>.from(json['unlockedThemes'] ?? ['default']),
-        unlockedIcons: (json['unlockedIcons'] as List?)
-            ?.map((i) => IconData(i, fontFamily: 'MaterialIcons'))
-            .toList() ?? [],
+        unlockedIcons: List<int>.from(json['unlockedIcons'] ?? []),
         locationReminder: json['locationReminder'],
         reminderLatitude: json['reminderLatitude']?.toDouble(),
         reminderLongitude: json['reminderLongitude']?.toDouble(),
@@ -526,16 +527,16 @@ class Habit {
     // Every 3 levels: new icon
     if (level % 3 == 0) {
       final iconOptions = [
-        Icons.star_border, Icons.favorite_border, Icons.diamond,
-        Icons.local_fire_department, Icons.emoji_events, Icons.military_tech,
-        Icons.workspace_premium, Icons.verified, Icons.trending_up,
+        Icons.star_border.codePoint, Icons.favorite_border.codePoint, Icons.diamond.codePoint,
+        Icons.local_fire_department.codePoint, Icons.emoji_events.codePoint, Icons.military_tech.codePoint,
+        Icons.workspace_premium.codePoint, Icons.verified.codePoint, Icons.trending_up.codePoint,
       ];
       
       final iconIndex = (level ~/ 3 - 1) % iconOptions.length;
-      final newIcon = iconOptions[iconIndex];
+      final newIconCodePoint = iconOptions[iconIndex];
       
-      if (!unlockedIcons.any((i) => i.codePoint == newIcon.codePoint)) {
-        unlockedIcons.add(newIcon);
+      if (!unlockedIcons.contains(newIconCodePoint)) {
+        unlockedIcons.add(newIconCodePoint);
         rewards.add("New Icon unlocked");
       }
     }
