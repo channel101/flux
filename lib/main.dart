@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flux/core/services/storage_service.dart';
 import 'package:flux/core/services/keyboard_service.dart';
 import 'package:flux/core/widgets/keyboard_aware_widget.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
