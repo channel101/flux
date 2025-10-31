@@ -3,6 +3,7 @@ import 'package:flux/core/enums/app_enums.dart';
 import 'package:flux/data/models/habit.dart';
 import 'package:flux/core/services/storage_service.dart';
 import 'package:flux/main.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 
 class BulkEditScreen extends StatefulWidget {
   final List<Habit> habits;
@@ -361,8 +362,8 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
                       Theme.of(context).colorScheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  habit.icon != null ? IconData(habit.icon!, fontFamily: 'MaterialIcons') : Icons.star,
+                child: HabitIcon(
+                  codePoint: habit.icon,
                   color: habit.color ?? Theme.of(context).colorScheme.primary,
                   size: 20,
                 ),

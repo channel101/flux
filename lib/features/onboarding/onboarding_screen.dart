@@ -6,6 +6,7 @@ import 'package:flux/data/models/habit.dart';
 import 'package:flux/core/services/storage_service.dart';
 import 'package:flux/features/home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flux/core/widgets/habit_icon.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final Function(String?)? onComplete;
@@ -711,7 +712,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
         children: [
           Row(
             children: [
-              Icon(habit.icon != null ? IconData(habit.icon!, fontFamily: 'MaterialIcons') : Icons.star, color: _stepColors[_currentStep], size: 24),
+              HabitIcon(codePoint: habit.icon, color: _stepColors[_currentStep], size: 24),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
