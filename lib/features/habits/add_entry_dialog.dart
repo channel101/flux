@@ -138,7 +138,7 @@ class _AddEntryDialogState extends State<AddEntryDialog> with TickerProviderStat
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
-            child: Icon(widget.habit.icon ?? Icons.star, color: Colors.white, size: 32),
+            child: Icon(widget.habit.icon != null ? IconData(widget.habit.icon!, fontFamily: 'MaterialIcons') : Icons.star, color: Colors.white, size: 32),
           ),
           SizedBox(width: 16),
           Expanded(

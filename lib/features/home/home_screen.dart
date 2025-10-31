@@ -941,7 +941,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           return Row(
             children: [
               Icon(
-                habit.icon ?? Icons.star,
+                habit.icon != null ? IconData(habit.icon!, fontFamily: 'MaterialIcons') : Icons.star,
                 color: Theme.of(context).colorScheme.primary,
               ),
               SizedBox(width: 12),

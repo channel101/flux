@@ -235,7 +235,7 @@ class HabitListItem extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        habit.icon ?? Icons.star,
+                        habit.icon != null ? IconData(habit.icon!, fontFamily: 'MaterialIcons') : Icons.star,
                         color: habit.color ?? Theme.of(context).colorScheme.primary,
                         size: isCompact ? 20 : 28,
                       ),

@@ -362,7 +362,7 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  habit.icon ?? Icons.star,
+                  habit.icon != null ? IconData(habit.icon!, fontFamily: 'MaterialIcons') : Icons.star,
                   color: habit.color ?? Theme.of(context).colorScheme.primary,
                   size: 20,
                 ),

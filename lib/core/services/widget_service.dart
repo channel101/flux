@@ -89,7 +89,7 @@ class WidgetService {
     return sortedHabits.take(3).map((habit) => {
       'name': habit.name,
       'streak': habit.currentStreak,
-      'icon': habit.icon?.codePoint ?? Icons.star.codePoint,
+      'icon': habit.icon ?? Icons.star.codePoint,
       'color': habit.color?.value ?? Colors.blue.value,
     }).toList();
   }

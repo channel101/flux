@@ -152,7 +152,7 @@ class _QuickEntryWidgetState extends State<QuickEntryWidget> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
-            habit.icon ?? Icons.star,
+            habit.icon != null ? IconData(habit.icon!, fontFamily: 'MaterialIcons') : Icons.star,
             color: habit.color ?? Theme.of(context).colorScheme.primary,
             size: 20,
           ),
@@ -360,7 +360,7 @@ class _QuickEntryDialogState extends State<QuickEntryDialog> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    widget.habit.icon ?? Icons.star,
+                    widget.habit.icon != null ? IconData(widget.habit.icon!, fontFamily: 'MaterialIcons') : Icons.star,
                     color: widget.habit.color ?? Theme.of(context).colorScheme.primary,
                     size: 24,
                   ),

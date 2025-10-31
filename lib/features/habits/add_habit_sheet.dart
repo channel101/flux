@@ -24,7 +24,7 @@ class _AddHabitSheetState extends State<AddHabitSheet> with TickerProviderStateM
   final _customUnitCtrl = TextEditingController();
   
   HabitType _type = HabitType.DoneBased;
-  IconData _icon = Icons.star;
+  int? _icon = Icons.star.codePoint;
   Color _color = Color(0xFF1DB954);
   HabitFrequency _frequency = HabitFrequency.Daily;
   HabitUnit _unit = HabitUnit.Count;
@@ -547,12 +547,12 @@ class _AddHabitSheetState extends State<AddHabitSheet> with TickerProviderStateM
         itemCount: _icons.length,
         itemBuilder: (context, index) {
           final icon = _icons[index];
-          final isSelected = _icon == icon;
+          final isSelected = _icon == icon.codePoint;
           
           return Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => setState(() => _icon = icon),
+              onTap: () => setState(() => _icon = icon.codePoint),
               borderRadius: BorderRadius.circular(8),
               child: AnimatedContainer(
                 duration: Duration(milliseconds: 200),
